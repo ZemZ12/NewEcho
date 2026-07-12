@@ -17,6 +17,11 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Firebase native config — not secret (client identifiers only, protected by
+# Firebase Security Rules), but keep GoogleService-Info.plist ignored until
+# the real one replaces this placeholder note.
+GoogleService-Info.plist
+
 # Metro
 .metro-health-check*
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "521160737054",
+    "project_id": "newecho-836ce",
+    "storage_bucket": "newecho-836ce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521160737054:android:8c1e7a2d3544a16c1d490f",
+        "android_client_info": {
+          "package_name": "com.zemz.newecho"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-7o2n8xkKjFSccgsTEskZyBZaa57ffyY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
