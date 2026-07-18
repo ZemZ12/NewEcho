@@ -71,8 +71,8 @@ export default function ChatListScreen() {
     <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark" edges={['top']}>
       <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
         <Text className="text-3xl font-semibold text-zinc-900 dark:text-white">Echo</Text>
-        <Link href="/new-group" className="h-10 w-10 items-center justify-center rounded-full bg-accent">
-          <Ionicons name="add" size={24} color="#fff" />
+        <Link href="/new-group" className="h-10 w-10 items-center justify-center">
+          <Ionicons name="add" size={28} color="#6366f1" />
         </Link>
       </View>
 
