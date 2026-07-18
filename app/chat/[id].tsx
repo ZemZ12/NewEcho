@@ -184,7 +184,7 @@ export default function ChatScreen() {
           ),
         }}
       />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
         <FlatList
           data={messages}
           keyExtractor={(message) => message.id}
