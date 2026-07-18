@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list';
 import { Link, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel } from 'stream-chat';
 
@@ -45,6 +45,24 @@ export default function ChatListScreen() {
     return () => handlers.forEach((handler) => handler.unsubscribe());
   }, [client, loadChannels]);
 
+  function handleDelete(channel: Channel) {
+    Alert.alert('Delete conversation?', 'It will disappear from your list until someone sends a new message.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await channel.hide();
+            setChannels((prev) => prev.filter((item) => item.cid !== channel.cid));
+          } catch (err) {
+            Alert.alert('Could not delete', err instanceof Error ? err.message : undefined);
+          }
+        },
+      },
+    ]);
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark" edges={['top']}>
       <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
@@ -67,6 +85,7 @@ export default function ChatListScreen() {
           renderItem={({ item: channel }) => (
             <Pressable
               onPress={() => router.push(`/chat/${channel.id}`)}
+              onLongPress={() => handleDelete(channel)}
               className="flex-row items-center gap-3 border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
               <View className="flex-1">
                 <Text className="text-base font-medium text-zinc-900 dark:text-white" numberOfLines={1}>
