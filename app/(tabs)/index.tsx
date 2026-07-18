@@ -7,13 +7,7 @@ import type { Channel } from 'stream-chat';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useStreamChat } from '@/hooks/useStreamChat';
-
-function channelDisplayName(channel: Channel, currentUserId: string): string {
-  const others = Object.values(channel.state.members)
-    .filter((member) => member.user?.id !== currentUserId)
-    .map((member) => member.user?.name ?? member.user?.id ?? 'Unknown');
-  return others.length > 0 ? others.join(', ') : 'Just you';
-}
+import { channelDisplayName } from '@/lib/channelDisplayName';
 
 function lastMessagePreview(channel: Channel): string {
   const messages = channel.state.messages;

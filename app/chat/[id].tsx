@@ -6,6 +6,7 @@ import type { Channel, LocalMessage } from 'stream-chat';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useStreamChat } from '@/hooks/useStreamChat';
+import { channelDisplayName } from '@/lib/channelDisplayName';
 
 // Plain message list + input for now — custom bubbles/animations land in M2.
 export default function ChatScreen() {
@@ -17,6 +18,8 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+
+  const title = channel && user ? channelDisplayName(channel, user.uid) : (id ?? 'Chat');
 
   useEffect(() => {
     if (!client || !id) return;
@@ -52,7 +55,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark" edges={['bottom']}>
-      <Stack.Screen options={{ title: id ?? 'Chat' }} />
+      <Stack.Screen options={{ title }} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         <FlatList
           data={messages}
