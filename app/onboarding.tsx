@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { getApp } from '@react-native-firebase/app';
 import { getAuth, signInWithPhoneNumber, type ConfirmationResult } from '@react-native-firebase/auth';
+import { Image } from 'expo-image';
 import { AnimatePresence, MotiText, MotiView } from 'moti';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
@@ -88,8 +89,12 @@ export default function OnboardingScreen() {
             from={{ opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', damping: 12, mass: 0.8 }}
-            className="h-20 w-20 items-center justify-center rounded-3xl bg-accent">
-            <Ionicons name="chatbubbles" size={36} color="#fff" />
+            className="h-24 w-24 overflow-hidden rounded-3xl">
+            <Image
+              source={require('@/assets/images/echo-icon.svg')}
+              style={{ width: 96, height: 96 }}
+              contentFit="cover"
+            />
           </MotiView>
 
           <MotiText
