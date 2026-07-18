@@ -1,10 +1,56 @@
-import { Link } from 'expo-router';
-import { Text, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { Link, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { Channel } from 'stream-chat';
 
-// Chat list — will be wired to Stream Chat's channel list in M1.
-// Empty state shown until real conversations exist.
+import { useAuth } from '@/hooks/useAuth';
+import { useStreamChat } from '@/hooks/useStreamChat';
+
+function channelDisplayName(channel: Channel, currentUserId: string): string {
+  const others = Object.values(channel.state.members)
+    .filter((member) => member.user?.id !== currentUserId)
+    .map((member) => member.user?.name ?? member.user?.id ?? 'Unknown');
+  return others.length > 0 ? others.join(', ') : 'Just you';
+}
+
+function lastMessagePreview(channel: Channel): string {
+  const messages = channel.state.messages;
+  const last = messages[messages.length - 1];
+  return last?.text ?? 'No messages yet';
+}
+
 export default function ChatListScreen() {
+  const { user } = useAuth();
+  const { client } = useStreamChat();
+  const router = useRouter();
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadChannels = useCallback(async () => {
+    if (!client || !client.userID) return;
+    const result = await client.queryChannels(
+      { members: { $in: [client.userID] } },
+      { last_message_at: -1 },
+      { watch: true, state: true },
+    );
+    setChannels(result);
+    setLoading(false);
+  }, [client]);
+
+  useEffect(() => {
+    if (!client) return;
+    loadChannels();
+
+    const handlers = [
+      client.on('message.new', loadChannels),
+      client.on('notification.added_to_channel', loadChannels),
+      client.on('channel.updated', loadChannels),
+    ];
+    return () => handlers.forEach((handler) => handler.unsubscribe());
+  }, [client, loadChannels]);
+
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark" edges={['top']}>
       <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
@@ -14,11 +60,32 @@ export default function ChatListScreen() {
         </Link>
       </View>
 
-      <View className="flex-1 items-center justify-center gap-2 px-10">
-        <Text className="text-center text-base text-zinc-400 dark:text-zinc-500">
-          No conversations yet. Start a chat with your friends to see it here.
-        </Text>
-      </View>
+      {!loading && channels.length === 0 ? (
+        <View className="flex-1 items-center justify-center gap-2 px-10">
+          <Text className="text-center text-base text-zinc-400 dark:text-zinc-500">
+            No conversations yet. Start a chat with your friends to see it here.
+          </Text>
+        </View>
+      ) : (
+        <FlashList
+          data={channels}
+          keyExtractor={(channel) => channel.cid}
+          renderItem={({ item: channel }) => (
+            <Pressable
+              onPress={() => router.push(`/chat/${channel.id}`)}
+              className="flex-row items-center gap-3 border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
+              <View className="flex-1">
+                <Text className="text-base font-medium text-zinc-900 dark:text-white" numberOfLines={1}>
+                  {channelDisplayName(channel, user?.uid ?? '')}
+                </Text>
+                <Text className="text-sm text-zinc-400 dark:text-zinc-500" numberOfLines={1}>
+                  {lastMessagePreview(channel)}
+                </Text>
+              </View>
+            </Pressable>
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }

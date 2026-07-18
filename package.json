@@ -18,6 +18,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@react-native-firebase/app": "^25.1.0",
     "@react-native-firebase/auth": "^25.1.0",
+    "@react-native-firebase/firestore": "^25.1.0",
     "@react-native-firebase/functions": "^25.1.0",
     "@react-navigation/native": "^7.1.8",
     "@shopify/flash-list": "2.0.2",
