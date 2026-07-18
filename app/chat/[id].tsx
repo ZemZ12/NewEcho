@@ -247,7 +247,9 @@ export default function ChatScreen() {
             onChangeText={handleTextChange}
             placeholder="Message"
             placeholderTextColor="#a1a1aa"
-            className="flex-1 rounded-full border border-zinc-200 px-4 py-2 text-base text-zinc-900 dark:border-zinc-700 dark:text-white"
+            className="flex-1 rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+            style={{ maxHeight: 120 }}
+            textAlignVertical="top"
             multiline
           />
           <Pressable
