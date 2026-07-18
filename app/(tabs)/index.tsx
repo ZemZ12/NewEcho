@@ -12,7 +12,10 @@ import { channelDisplayName } from '@/lib/channelDisplayName';
 function lastMessagePreview(channel: Channel): string {
   const messages = channel.state.messages;
   const last = messages[messages.length - 1];
-  return last?.text ?? 'No messages yet';
+  if (!last) return 'No messages yet';
+  if (last.text) return last.text;
+  if (last.attachments?.some((attachment) => attachment.type === 'image')) return 'Photo';
+  return 'No messages yet';
 }
 
 export default function ChatListScreen() {

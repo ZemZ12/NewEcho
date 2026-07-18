@@ -61,7 +61,7 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
       const mintStreamToken = httpsCallable<void, { token: string }>(getFunctions(getApp()), 'mintStreamToken');
       const { data } = await mintStreamToken();
       if (cancelled) return;
-      await chatClient.connectUser({ id: user!.uid, name: profile!.username }, data.token);
+      await chatClient.connectUser({ id: user!.uid, name: profile!.username, image: profile!.photoURL }, data.token);
       if (cancelled) return;
       setClient(chatClient);
 
@@ -79,7 +79,18 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
       chatClient.disconnectUser();
       setClient(null);
     };
-  }, [user, profile]);
+    // Deliberately keyed on the username (stable/immutable once set), not the
+    // whole profile object — avatar changes update the already-connected
+    // user in place below instead of tearing down and reconnecting.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profile?.username]);
+
+  useEffect(() => {
+    if (!client || !client.userID || !profile?.photoURL) return;
+    client
+      .partialUpdateUser({ id: client.userID, set: { image: profile.photoURL } })
+      .catch((err) => console.warn('Could not update Stream avatar:', err));
+  }, [client, profile?.photoURL]);
 
   return <StreamContext.Provider value={{ client }}>{children}</StreamContext.Provider>;
 }

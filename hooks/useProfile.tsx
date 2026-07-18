@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 export type Profile = {
   username: string;
   usernameLower: string;
+  photoURL?: string;
 };
 
 type ProfileContextValue = {
@@ -80,4 +81,8 @@ export async function claimUsername(
     }
     return { ok: false, error: 'Could not save that username. Try again.' };
   }
+}
+
+export async function updateAvatar(uid: string, photoURL: string): Promise<void> {
+  await firestore().collection('users').doc(uid).update({ photoURL });
 }

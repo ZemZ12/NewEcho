@@ -1,12 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public profile: username only, no phone number (Firebase Auth already
-    // owns that, and it's never written here). Readable by any signed-in
-    // user so group members/search can resolve usernames; writable only by
-    // the owner, once, at account creation. Usernames are immutable for now
-    // — changing one would need to release the old usernames/{lower} doc
-    // too, which isn't implemented yet.
+    // Public profile: username + optional avatar URL, no phone number
+    // (Firebase Auth already owns that, and it's never written here).
+    // Readable by any signed-in user so group members/search can resolve
+    // usernames; writable only by the owner. Usernames are immutable once
+    // created — changing one would need to release the old usernames/{lower}
+    // doc too, which isn't implemented yet — but photoURL can be updated any
+    // time.
     match /users/{uid} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
@@ -16,7 +17,11 @@ service cloud.firestore {
         && request.resource.data.username.size() >= 3
         && request.resource.data.username.size() <= 20
         && request.resource.data.usernameLower == request.resource.data.username.lower();
-      allow update, delete: if false;
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL'])
+        && request.resource.data.photoURL is string;
+      allow delete: if false;
     }
 
     // Reservation lock keyed by lowercased username, doc id enforces global

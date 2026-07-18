@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -18,6 +20,9 @@ import type { Channel, LocalMessage } from 'stream-chat';
 import { useAuth } from '@/hooks/useAuth';
 import { useStreamChat } from '@/hooks/useStreamChat';
 import { channelDisplayName } from '@/lib/channelDisplayName';
+import { pickImageFromCamera, pickImageFromLibrary } from '@/lib/pickImage';
+
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢'];
 
 // Plain message list + input for now — custom bubbles/animations land in M2.
 export default function ChatScreen() {
@@ -30,9 +35,12 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendingImage, setSendingImage] = useState(false);
   const [memberTick, setMemberTick] = useState(0);
   const [infoVisible, setInfoVisible] = useState(false);
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
+  const [reactionTarget, setReactionTarget] = useState<LocalMessage | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   const title = channel && user ? channelDisplayName(channel, user.uid) : (id ?? 'Chat');
 
@@ -48,10 +56,23 @@ export default function ChatScreen() {
       setMessages([...ch.state.messages]);
     });
 
+    const refreshMessages = () => setMessages([...ch.state.messages]);
+
     const handlers = [
-      ch.on('message.new', () => setMessages([...ch.state.messages])),
+      ch.on('message.new', refreshMessages),
+      ch.on('reaction.new', refreshMessages),
+      ch.on('reaction.updated', refreshMessages),
+      ch.on('reaction.deleted', refreshMessages),
       ch.on('member.added', () => setMemberTick((tick) => tick + 1)),
       ch.on('member.removed', () => setMemberTick((tick) => tick + 1)),
+      ch.on('typing.start', (event) => {
+        if (event.user?.id === client.userID || !event.user?.name) return;
+        setTypingUsers((prev) => (prev.includes(event.user!.name!) ? prev : [...prev, event.user!.name!]));
+      }),
+      ch.on('typing.stop', (event) => {
+        if (!event.user?.name) return;
+        setTypingUsers((prev) => prev.filter((name) => name !== event.user!.name));
+      }),
     ];
 
     return () => {
@@ -65,10 +86,55 @@ export default function ChatScreen() {
     if (!channel || !trimmed) return;
     setSending(true);
     setText('');
+    channel.stopTyping();
     try {
       await channel.sendMessage({ text: trimmed });
     } finally {
       setSending(false);
+    }
+  }
+
+  function handleTextChange(value: string) {
+    setText(value);
+    channel?.keystroke();
+  }
+
+  async function handleReactionPress(emoji: string) {
+    if (!channel || !reactionTarget) return;
+    const alreadyReacted = reactionTarget.own_reactions?.some((reaction) => reaction.type === emoji);
+    setReactionTarget(null);
+    try {
+      if (alreadyReacted) {
+        await channel.deleteReaction(reactionTarget.id, emoji);
+      } else {
+        await channel.sendReaction(reactionTarget.id, { type: emoji });
+      }
+    } catch (err) {
+      Alert.alert('Could not react', err instanceof Error ? err.message : undefined);
+    }
+  }
+
+  function handleAttach() {
+    Alert.alert('Send photo', undefined, [
+      { text: 'Take photo', onPress: () => sendPhotoFrom(pickImageFromCamera) },
+      { text: 'Choose from library', onPress: () => sendPhotoFrom(pickImageFromLibrary) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  async function sendPhotoFrom(pick: () => Promise<{ uri: string; fileName: string | null } | null>) {
+    if (!channel) return;
+    const image = await pick();
+    if (!image) return;
+
+    setSendingImage(true);
+    try {
+      const result = await channel.sendImage(image.uri, image.fileName ?? undefined);
+      await channel.sendMessage({ attachments: [{ type: 'image', image_url: result.file }] });
+    } catch (err) {
+      Alert.alert('Could not send photo', err instanceof Error ? err.message : undefined);
+    } finally {
+      setSendingImage(false);
     }
   }
 
@@ -125,12 +191,35 @@ export default function ChatScreen() {
           contentContainerClassName="gap-2 px-4 py-3"
           renderItem={({ item: message }) => {
             const isMine = message.user?.id === user?.uid;
+            const images = (message.attachments ?? []).filter((attachment) => attachment.type === 'image');
+            const reactionEntries = Object.entries(message.reaction_counts ?? {}).filter(([, count]) => count > 0);
             return (
-              <View className={isMine ? 'items-end' : 'items-start'}>
-                <View className={`max-w-[80%] rounded-2xl px-4 py-2 ${isMine ? 'bg-accent' : 'bg-zinc-100 dark:bg-zinc-800'}`}>
-                  <Text className={isMine ? 'text-white' : 'text-zinc-900 dark:text-white'}>{message.text}</Text>
-                </View>
-              </View>
+              <Pressable onLongPress={() => setReactionTarget(message)} className={isMine ? 'items-end' : 'items-start'}>
+                {images.map((attachment, index) => (
+                  <Image
+                    key={attachment.image_url ?? index}
+                    source={{ uri: attachment.image_url }}
+                    style={{ width: 200, height: 200, borderRadius: 16, marginBottom: message.text ? 4 : 0 }}
+                    contentFit="cover"
+                  />
+                ))}
+                {message.text ? (
+                  <View className={`max-w-[80%] rounded-2xl px-4 py-2 ${isMine ? 'bg-accent' : 'bg-zinc-100 dark:bg-zinc-800'}`}>
+                    <Text className={isMine ? 'text-white' : 'text-zinc-900 dark:text-white'}>{message.text}</Text>
+                  </View>
+                ) : null}
+                {reactionEntries.length > 0 ? (
+                  <View className="mt-1 flex-row gap-1">
+                    {reactionEntries.map(([type, count]) => (
+                      <View key={type} className="flex-row items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">
+                        <Text className="text-xs">
+                          {type} {count}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </Pressable>
             );
           }}
           ListEmptyComponent={
@@ -140,10 +229,22 @@ export default function ChatScreen() {
           }
         />
 
+        {typingUsers.length > 0 ? (
+          <Text className="px-4 pb-1 text-xs text-zinc-400 dark:text-zinc-500">
+            {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+          </Text>
+        ) : null}
+
         <View className="flex-row items-center gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
+          <Pressable
+            onPress={handleAttach}
+            disabled={sendingImage || !channel}
+            className="items-center justify-center rounded-full bg-zinc-100 p-2 disabled:opacity-50 dark:bg-zinc-800">
+            {sendingImage ? <ActivityIndicator /> : <Ionicons name="image-outline" size={22} color="#6366f1" />}
+          </Pressable>
           <TextInput
             value={text}
-            onChangeText={setText}
+            onChangeText={handleTextChange}
             placeholder="Message"
             placeholderTextColor="#a1a1aa"
             className="flex-1 rounded-full border border-zinc-200 px-4 py-2 text-base text-zinc-900 dark:border-zinc-700 dark:text-white"
@@ -198,6 +299,18 @@ export default function ChatScreen() {
             </Pressable>
           </View>
         </SafeAreaView>
+      </Modal>
+
+      <Modal visible={!!reactionTarget} transparent animationType="fade" onRequestClose={() => setReactionTarget(null)}>
+        <Pressable className="flex-1 items-center justify-center bg-black/40" onPress={() => setReactionTarget(null)}>
+          <View className="flex-row gap-3 rounded-full bg-white px-5 py-3 dark:bg-zinc-800">
+            {REACTION_EMOJIS.map((emoji) => (
+              <Pressable key={emoji} onPress={() => handleReactionPress(emoji)} hitSlop={6}>
+                <Text className="text-3xl">{emoji}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
