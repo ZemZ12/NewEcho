@@ -1,10 +1,26 @@
 import { getApp } from '@react-native-firebase/app';
 import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
+import { getMessaging, getToken, onTokenRefresh, requestPermission } from '@react-native-firebase/messaging';
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { StreamChat } from 'stream-chat';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+
+// Requests notification permission, registers the device's FCM token with
+// Stream (so Stream can push through Firebase when this device isn't
+// actively watching a channel), and keeps it current on token refresh.
+// Failures here shouldn't block chat from working, so they're swallowed.
+async function registerPushDevice(chatClient: StreamChat) {
+  try {
+    const messaging = getMessaging(getApp());
+    await requestPermission(messaging);
+    const token = await getToken(messaging);
+    await chatClient.addDevice(token, 'firebase');
+  } catch (err) {
+    console.warn('Could not register push device:', err);
+  }
+}
 
 const STREAM_API_KEY = process.env.EXPO_PUBLIC_STREAM_API_KEY;
 
@@ -39,18 +55,27 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
     let cancelled = false;
     const chatClient = StreamChat.getInstance(STREAM_API_KEY);
 
+    let unsubscribeTokenRefresh: (() => void) | undefined;
+
     async function connect() {
       const mintStreamToken = httpsCallable<void, { token: string }>(getFunctions(getApp()), 'mintStreamToken');
       const { data } = await mintStreamToken();
       if (cancelled) return;
       await chatClient.connectUser({ id: user!.uid, name: profile!.username }, data.token);
-      if (!cancelled) setClient(chatClient);
+      if (cancelled) return;
+      setClient(chatClient);
+
+      registerPushDevice(chatClient);
+      unsubscribeTokenRefresh = onTokenRefresh(getMessaging(getApp()), (token) => {
+        chatClient.addDevice(token, 'firebase').catch((err) => console.warn('Could not update push device:', err));
+      });
     }
 
     connect();
 
     return () => {
       cancelled = true;
+      unsubscribeTokenRefresh?.();
       chatClient.disconnectUser();
       setClient(null);
     };

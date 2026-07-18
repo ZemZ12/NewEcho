@@ -8,6 +8,7 @@ import '../global.css';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { useNotificationNavigation } from '@/hooks/useNotificationNavigation';
 import { ProfileProvider, useProfile } from '@/hooks/useProfile';
 import { StreamChatProvider } from '@/hooks/useStreamChat';
 
@@ -17,6 +18,7 @@ SplashScreen.preventAutoHideAsync();
 function RootNavigator() {
   const { user, initializing } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
+  useNotificationNavigation();
 
   if (initializing || (user && profileLoading)) {
     return null;
