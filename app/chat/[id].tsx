@@ -2,18 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Keyboard, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel, LocalMessage } from 'stream-chat';
 
@@ -41,8 +30,25 @@ export default function ChatScreen() {
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
   const [reactionTarget, setReactionTarget] = useState<LocalMessage | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const title = channel && user ? channelDisplayName(channel, user.uid) : (id ?? 'Chat');
+
+  // Tracked manually rather than via KeyboardAvoidingView: on this
+  // Expo/Android edge-to-edge setup neither KeyboardAvoidingView's
+  // automatic behavior nor windowSoftInputMode=resize actually shifted
+  // the input above the keyboard, so the height is applied as explicit
+  // bottom padding instead.
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!client || !id) return;
@@ -184,7 +190,7 @@ export default function ChatScreen() {
           ),
         }}
       />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
+      <View className="flex-1" style={{ paddingBottom: keyboardHeight }}>
         <FlatList
           data={messages}
           keyExtractor={(message) => message.id}
@@ -259,7 +265,7 @@ export default function ChatScreen() {
             <Text className="font-medium text-white">Send</Text>
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <Modal visible={infoVisible} animationType="slide" presentationStyle="pageSheet" key={memberTick}>
         <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark">
