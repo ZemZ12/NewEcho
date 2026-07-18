@@ -90,9 +90,12 @@ export default function OnboardingScreen() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', damping: 12, mass: 0.8 }}
             className="h-24 w-24 overflow-hidden rounded-3xl">
+            {/* The artwork's face/sphere sits slightly above center in its
+                own 192x192 canvas — rendered a bit larger and shifted up
+                within a clipped frame to recenter the subject visually. */}
             <Image
               source={require('@/assets/images/echo-icon.svg')}
-              style={{ width: 96, height: 96 }}
+              style={{ width: 112, height: 112, marginLeft: -8, marginTop: -14 }}
               contentFit="cover"
             />
           </MotiView>
