@@ -311,7 +311,19 @@ export default function ChatScreen() {
     <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark" edges={['bottom']}>
       <Stack.Screen
         options={{
-          title: subtitle ? `${title}\n${subtitle}` : title,
+          title,
+          headerTitle: () => (
+            <View className="items-center">
+              <Text className="text-base font-semibold text-zinc-900 dark:text-white" numberOfLines={1}>
+                {title}
+              </Text>
+              {subtitle ? (
+                <Text className="text-xs text-zinc-400 dark:text-zinc-500" numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+          ),
           headerRight: () => (
             <Pressable onPress={() => setInfoVisible(true)} hitSlop={8}>
               <Ionicons name="information-circle-outline" size={26} color="#6366f1" />
