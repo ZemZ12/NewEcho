@@ -8,8 +8,8 @@ import Animated, {
 
 type Circle = { x: number; y: number; vx: number; vy: number; r: number; opacity: number };
 
-const RADII = [70, 92, 56, 108, 48, 78];
-const OPACITIES = [0.16, 0.1, 0.2, 0.08, 0.18, 0.13];
+const RADII = [110, 140, 95, 125];
+const OPACITIES = [0.16, 0.09, 0.19, 0.12];
 const SPEED = 16; // px/sec
 
 function initialCircles(width: number, height: number): Circle[] {
