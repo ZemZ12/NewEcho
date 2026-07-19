@@ -352,7 +352,7 @@ export default function ChatScreen() {
                 ) : null}
                 {images.map((attachment, index) => (
                   <Image
-                    key={attachment.image_url ?? index}
+                    key={`${message.id}-image-${attachment.image_url ?? index}`}
                     source={{ uri: attachment.image_url }}
                     style={{ width: 200, height: 200, borderRadius: 16, marginBottom: message.text ? 4 : 0 }}
                     contentFit="cover"
@@ -363,13 +363,15 @@ export default function ChatScreen() {
                     <Text className={isMine ? 'text-white' : 'text-zinc-900 dark:text-white'}>{message.text}</Text>
                   </View>
                 ) : null}
-                {message.updated_at !== message.created_at ? (
+                {message.updated_at.getTime() !== message.created_at.getTime() ? (
                   <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">edited</Text>
                 ) : null}
                 {reactionEntries.length > 0 ? (
                   <View className="mt-1 flex-row gap-1">
                     {reactionEntries.map(([type, count]) => (
-                      <View key={type} className="flex-row items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">
+                      <View
+                        key={`${message.id}-reaction-${type}`}
+                        className="flex-row items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">
                         <Text className="text-xs">
                           {type} {count}
                         </Text>
