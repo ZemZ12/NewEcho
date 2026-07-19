@@ -5,7 +5,15 @@ import { Image } from 'expo-image';
 import { AnimatePresence, MotiText, MotiView } from 'moti';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const ICON_SIZE = 104;
+// Rotation normally pivots around a view's center (50%); shifting the pivot
+// down to ~73% (matching the reference design's transform-origin) and back
+// via translateY before/after the rotate gives the icon a pendulum-swing
+// feel instead of spinning around its middle.
+const PIVOT_OFFSET = ICON_SIZE * 0.23;
 
 // Phone OTP entry, wired to Firebase Auth. Signing in updates the auth state
 // listened to by the root layout, which then redirects out of this screen.
@@ -17,6 +25,15 @@ export default function OnboardingScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pressed, setPressed] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const swing = useSharedValue(-14);
+
+  useEffect(() => {
+    swing.value = withRepeat(withTiming(14, { duration: 1800, easing: Easing.inOut(Easing.ease) }), -1, true);
+  }, [swing]);
+
+  const swingStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: PIVOT_OFFSET }, { rotate: `${swing.value}deg` }, { translateY: -PIVOT_OFFSET }],
+  }));
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => setKeyboardHeight(e.endCoordinates.height));
@@ -88,13 +105,14 @@ export default function OnboardingScreen() {
           <MotiView
             from={{ opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'spring', damping: 12, mass: 0.8 }}
-            className="h-24 w-24 overflow-hidden rounded-3xl">
-            <Image
-              source={require('@/assets/images/echo-icon.svg')}
-              style={{ width: 96, height: 96 }}
-              contentFit="cover"
-            />
+            transition={{ type: 'spring', damping: 12, mass: 0.8 }}>
+            <Animated.View style={swingStyle}>
+              <Image
+                source={require('@/assets/images/echo-icon.svg')}
+                style={{ width: ICON_SIZE, height: ICON_SIZE }}
+                contentFit="contain"
+              />
+            </Animated.View>
           </MotiView>
 
           <MotiText
