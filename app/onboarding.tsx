@@ -8,6 +8,8 @@ import { ActivityIndicator, Keyboard, Pressable, Text, TextInput, View } from 'r
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FloatingCircles } from '@/components/FloatingCircles';
+
 const ICON_SIZE = 104;
 // Rotation normally pivots around a view's center (50%); shifting the pivot
 // down to ~73% (matching the reference design's transform-origin) and back
@@ -82,23 +84,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark">
-      {/* Soft floating accent blobs — a cheap, dependency-free stand-in for a
-          blurred gradient background, since expo-linear-gradient/blur aren't
-          installed (would mean another native rebuild for pure decoration). */}
-      <View className="absolute inset-0 overflow-hidden" pointerEvents="none">
-        <MotiView
-          from={{ translateY: -40, scale: 0.9 }}
-          animate={{ translateY: 20, scale: 1.05 }}
-          transition={{ type: 'timing', duration: 6000, loop: true, repeatReverse: true }}
-          className="absolute -left-24 -top-16 h-72 w-72 rounded-full bg-accent/20"
-        />
-        <MotiView
-          from={{ translateY: 30, scale: 1 }}
-          animate={{ translateY: -20, scale: 1.1 }}
-          transition={{ type: 'timing', duration: 7000, loop: true, repeatReverse: true }}
-          className="absolute -bottom-24 -right-16 h-80 w-80 rounded-full bg-accent/10"
-        />
-      </View>
+      <FloatingCircles />
 
       <View className="flex-1 justify-center gap-8 px-8" style={{ paddingBottom: keyboardHeight }}>
         <View className="items-center gap-4">
