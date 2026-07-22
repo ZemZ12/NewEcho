@@ -35,10 +35,16 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     return firestore()
       .collection('users')
       .doc(user.uid)
-      .onSnapshot((snapshot) => {
-        setProfile(snapshot.exists() ? (snapshot.data() as Profile) : null);
-        setLoading(false);
-      });
+      .onSnapshot(
+        (snapshot) => {
+          setProfile(snapshot.exists() ? (snapshot.data() as Profile) : null);
+          setLoading(false);
+        },
+        (err) => {
+          console.warn('Could not load profile:', err);
+          setLoading(false);
+        },
+      );
   }, [user]);
 
   return <ProfileContext.Provider value={{ profile, loading }}>{children}</ProfileContext.Provider>;

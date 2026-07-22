@@ -23,12 +23,14 @@ async function registerPushDevice(chatClient: StreamChat) {
 }
 
 const STREAM_API_KEY = process.env.EXPO_PUBLIC_STREAM_API_KEY;
+const RETRY_DELAY_MS = 3000;
 
 type StreamContextValue = {
   client: StreamChat | null;
+  error: boolean;
 };
 
-const StreamContext = createContext<StreamContextValue>({ client: null });
+const StreamContext = createContext<StreamContextValue>({ client: null, error: false });
 
 // Connects to Stream Chat once a Firebase user is signed in AND has claimed
 // a username, using a token minted server-side by the mintStreamToken Cloud
@@ -40,10 +42,12 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
   const { user } = useAuth();
   const { profile } = useProfile();
   const [client, setClient] = useState<StreamChat | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!user || !profile) {
       setClient(null);
+      setError(false);
       return;
     }
 
@@ -53,28 +57,49 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
     }
 
     let cancelled = false;
+    let retryTimeout: ReturnType<typeof setTimeout> | undefined;
     const chatClient = StreamChat.getInstance(STREAM_API_KEY);
 
     let unsubscribeTokenRefresh: (() => void) | undefined;
 
+    // getInstance() is a singleton keyed by API key, so switching accounts
+    // (e.g. signing out and into a different user) reuses the same
+    // underlying client — make sure any previous session is fully torn down
+    // before connecting the new one, rather than letting connectUser() race
+    // an in-flight disconnectUser() from the prior effect's cleanup.
     async function connect() {
-      const mintStreamToken = httpsCallable<void, { token: string }>(getFunctions(getApp()), 'mintStreamToken');
-      const { data } = await mintStreamToken();
-      if (cancelled) return;
-      await chatClient.connectUser({ id: user!.uid, name: profile!.username, image: profile!.photoURL }, data.token);
-      if (cancelled) return;
-      setClient(chatClient);
+      try {
+        if (chatClient.user && chatClient.user.id !== user!.uid) {
+          await chatClient.disconnectUser();
+        }
+        if (cancelled) return;
 
-      registerPushDevice(chatClient);
-      unsubscribeTokenRefresh = onTokenRefresh(getMessaging(getApp()), (token) => {
-        chatClient.addDevice(token, 'firebase').catch((err) => console.warn('Could not update push device:', err));
-      });
+        const mintStreamToken = httpsCallable<void, { token: string }>(getFunctions(getApp()), 'mintStreamToken');
+        const { data } = await mintStreamToken();
+        if (cancelled) return;
+        await chatClient.connectUser({ id: user!.uid, name: profile!.username, image: profile!.photoURL }, data.token);
+        if (cancelled) return;
+
+        setClient(chatClient);
+        setError(false);
+
+        registerPushDevice(chatClient);
+        unsubscribeTokenRefresh = onTokenRefresh(getMessaging(getApp()), (token) => {
+          chatClient.addDevice(token, 'firebase').catch((err) => console.warn('Could not update push device:', err));
+        });
+      } catch (err) {
+        if (cancelled) return;
+        console.warn('Could not connect to Stream Chat, retrying:', err);
+        setError(true);
+        retryTimeout = setTimeout(connect, RETRY_DELAY_MS);
+      }
     }
 
     connect();
 
     return () => {
       cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
       unsubscribeTokenRefresh?.();
       chatClient.disconnectUser();
       setClient(null);
@@ -92,7 +117,7 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
       .catch((err) => console.warn('Could not update Stream avatar:', err));
   }, [client, profile?.photoURL]);
 
-  return <StreamContext.Provider value={{ client }}>{children}</StreamContext.Provider>;
+  return <StreamContext.Provider value={{ client, error }}>{children}</StreamContext.Provider>;
 }
 
 export function useStreamChat() {

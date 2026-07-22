@@ -30,6 +30,7 @@ export default function ChatListScreen() {
   const router = useRouter();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MessageResponse[]>([]);
@@ -37,13 +38,20 @@ export default function ChatListScreen() {
 
   const loadChannels = useCallback(async () => {
     if (!client || !client.userID) return;
-    const result = await client.queryChannels(
-      { members: { $in: [client.userID] } },
-      { last_message_at: -1 },
-      { watch: true, state: true, presence: true },
-    );
-    setChannels(result);
-    setLoading(false);
+    try {
+      const result = await client.queryChannels(
+        { members: { $in: [client.userID] } },
+        { last_message_at: -1 },
+        { watch: true, state: true, presence: true },
+      );
+      setChannels(result);
+      setLoadError(false);
+    } catch (err) {
+      console.warn('Could not load chats:', err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [client]);
 
   useEffect(() => {
@@ -123,7 +131,21 @@ export default function ChatListScreen() {
         </View>
       </View>
 
-      {!loading && channels.length === 0 ? (
+      {loadError ? (
+        <View className="flex-1 items-center justify-center gap-3 px-10">
+          <Text className="text-center text-base text-zinc-400 dark:text-zinc-500">
+            Could not load your chats. Check your connection and try again.
+          </Text>
+          <Pressable
+            onPress={() => {
+              setLoading(true);
+              loadChannels();
+            }}
+            className="rounded-full bg-accent px-4 py-2">
+            <Text className="font-medium text-white">Retry</Text>
+          </Pressable>
+        </View>
+      ) : !loading && channels.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-2 px-10">
           <Text className="text-center text-base text-zinc-400 dark:text-zinc-500">
             No conversations yet. Start a chat with your friends to see it here.

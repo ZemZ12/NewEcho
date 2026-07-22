@@ -64,6 +64,8 @@ export default function ChatScreen() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [muted, setMuted] = useState(false);
   const [blockedIds, setBlockedIds] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const title = channel && user ? channelDisplayName(channel, user.uid) : (id ?? 'Chat');
   const subtitle = channel && user ? presenceSubtitle(channel, user.uid) : null;
@@ -89,14 +91,21 @@ export default function ChatScreen() {
 
     let cancelled = false;
     const ch = client.channel('messaging', id);
+    setLoadError(false);
 
-    ch.watch({ presence: true }).then(() => {
-      if (cancelled) return;
-      setChannel(ch);
-      setMessages([...ch.state.messages]);
-      setMuted(ch.muteStatus().muted);
-      ch.markRead();
-    });
+    ch.watch({ presence: true })
+      .then(() => {
+        if (cancelled) return;
+        setChannel(ch);
+        setMessages([...ch.state.messages]);
+        setMuted(ch.muteStatus().muted);
+        ch.markRead();
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn('Could not load this conversation:', err);
+        setLoadError(true);
+      });
 
     setBlockedIds(client.blockedUsers.getLatestValue().userIds);
 
@@ -130,7 +139,7 @@ export default function ChatScreen() {
       cancelled = true;
       handlers.forEach((handler) => handler.unsubscribe());
     };
-  }, [client, id]);
+  }, [client, id, retryCount]);
 
   async function handleSend() {
     const trimmed = text.trim();
@@ -331,114 +340,125 @@ export default function ChatScreen() {
           ),
         }}
       />
-      <View className="flex-1" style={{ paddingBottom: keyboardHeight }}>
-        <FlatList
-          data={messages}
-          keyExtractor={(message) => message.id}
-          contentContainerClassName="gap-2 px-4 py-3"
-          renderItem={({ item: message }) => {
-            const isMine = message.user?.id === user?.uid;
-            const images = (message.attachments ?? []).filter((attachment) => attachment.type === 'image');
-            const reactionEntries = Object.entries(message.reaction_counts ?? {}).filter(([, count]) => count > 0);
-            const showSeen = isMine && channel && message.id === lastMessage?.id && isSeenByOthers(channel, message, user?.uid ?? '');
-            return (
-              <Pressable onLongPress={() => setActionTarget(message)} className={isMine ? 'items-end' : 'items-start'}>
-                {message.quoted_message ? (
-                  <View className="mb-1 max-w-[80%] rounded-xl border-l-2 border-accent bg-black/5 px-2 py-1 dark:bg-white/5">
-                    <Text className="text-xs text-zinc-500 dark:text-zinc-400" numberOfLines={1}>
-                      {message.quoted_message.text || 'Photo'}
-                    </Text>
-                  </View>
-                ) : null}
-                {images.map((attachment, index) => (
-                  <Image
-                    key={`${message.id}-image-${attachment.image_url ?? index}`}
-                    source={{ uri: attachment.image_url }}
-                    style={{ width: 200, height: 200, borderRadius: 16, marginBottom: message.text ? 4 : 0 }}
-                    contentFit="cover"
-                  />
-                ))}
-                {message.text ? (
-                  <View className={`max-w-[80%] rounded-2xl px-4 py-2 ${isMine ? 'bg-accent' : 'bg-zinc-100 dark:bg-zinc-800'}`}>
-                    <Text className={isMine ? 'text-white' : 'text-zinc-900 dark:text-white'}>{message.text}</Text>
-                  </View>
-                ) : null}
-                {message.updated_at.getTime() !== message.created_at.getTime() ? (
-                  <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">edited</Text>
-                ) : null}
-                {reactionEntries.length > 0 ? (
-                  <View className="mt-1 flex-row gap-1">
-                    {reactionEntries.map(([type, count]) => (
-                      <View
-                        key={`${message.id}-reaction-${type}`}
-                        className="flex-row items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">
-                        <Text className="text-xs">
-                          {type} {count}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-                {showSeen ? <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">Seen</Text> : null}
-              </Pressable>
-            );
-          }}
-          ListEmptyComponent={
-            <Text className="mt-10 text-center text-base text-zinc-400 dark:text-zinc-500">
-              No messages yet. Say hello.
-            </Text>
-          }
-        />
-
-        {typingUsers.length > 0 ? (
-          <Text className="px-4 pb-1 text-xs text-zinc-400 dark:text-zinc-500">
-            {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+      {loadError ? (
+        <View className="flex-1 items-center justify-center gap-3 px-10">
+          <Text className="text-center text-base text-zinc-400 dark:text-zinc-500">
+            Could not load this conversation. Check your connection and try again.
           </Text>
-        ) : null}
-
-        {replyingTo || editingMessage ? (
-          <View className="flex-row items-center justify-between border-t border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900">
-            <View className="flex-1">
-              <Text className="text-xs font-medium text-accent">
-                {editingMessage ? 'Editing message' : `Replying to ${replyingTo?.user?.name ?? ''}`}
-              </Text>
-              {replyingTo ? (
-                <Text className="text-sm text-zinc-500 dark:text-zinc-400" numberOfLines={1}>
-                  {replyingTo.text || 'Photo'}
-                </Text>
-              ) : null}
-            </View>
-            <Pressable onPress={cancelComposerExtra} hitSlop={8}>
-              <Ionicons name="close" size={20} color="#71717a" />
-            </Pressable>
-          </View>
-        ) : null}
-
-        <View className="flex-row items-center gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
-          <Pressable
-            onPress={handleAttach}
-            disabled={sendingImage || !channel}
-            className="items-center justify-center rounded-full bg-zinc-100 p-2 disabled:opacity-50 dark:bg-zinc-800">
-            {sendingImage ? <ActivityIndicator /> : <Ionicons name="image-outline" size={22} color="#6366f1" />}
-          </Pressable>
-          <TextInput
-            value={text}
-            onChangeText={handleTextChange}
-            placeholder="Message"
-            placeholderTextColor="#a1a1aa"
-            className="flex-1 rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-            style={{ maxHeight: 120 }}
-            textAlignVertical="top"
-            multiline
-          />
-          <Pressable
-            onPress={handleSend}
-            disabled={sending || !text.trim() || !channel}
-            className="items-center justify-center rounded-full bg-accent px-4 py-2 disabled:opacity-50">
-            <Text className="font-medium text-white">{editingMessage ? 'Save' : 'Send'}</Text>
+          <Pressable onPress={() => setRetryCount((count) => count + 1)} className="rounded-full bg-accent px-4 py-2">
+            <Text className="font-medium text-white">Retry</Text>
           </Pressable>
         </View>
-      </View>
+      ) : (
+        <View className="flex-1" style={{ paddingBottom: keyboardHeight }}>
+          <FlatList
+            data={messages}
+            keyExtractor={(message) => message.id}
+            contentContainerClassName="gap-2 px-4 py-3"
+            renderItem={({ item: message }) => {
+              const isMine = message.user?.id === user?.uid;
+              const images = (message.attachments ?? []).filter((attachment) => attachment.type === 'image');
+              const reactionEntries = Object.entries(message.reaction_counts ?? {}).filter(([, count]) => count > 0);
+              const showSeen = isMine && channel && message.id === lastMessage?.id && isSeenByOthers(channel, message, user?.uid ?? '');
+              return (
+                <Pressable onLongPress={() => setActionTarget(message)} className={isMine ? 'items-end' : 'items-start'}>
+                  {message.quoted_message ? (
+                    <View className="mb-1 max-w-[80%] rounded-xl border-l-2 border-accent bg-black/5 px-2 py-1 dark:bg-white/5">
+                      <Text className="text-xs text-zinc-500 dark:text-zinc-400" numberOfLines={1}>
+                        {message.quoted_message.text || 'Photo'}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {images.map((attachment, index) => (
+                    <Image
+                      key={`${message.id}-image-${attachment.image_url ?? index}`}
+                      source={{ uri: attachment.image_url }}
+                      style={{ width: 200, height: 200, borderRadius: 16, marginBottom: message.text ? 4 : 0 }}
+                      contentFit="cover"
+                    />
+                  ))}
+                  {message.text ? (
+                    <View className={`max-w-[80%] rounded-2xl px-4 py-2 ${isMine ? 'bg-accent' : 'bg-zinc-100 dark:bg-zinc-800'}`}>
+                      <Text className={isMine ? 'text-white' : 'text-zinc-900 dark:text-white'}>{message.text}</Text>
+                    </View>
+                  ) : null}
+                  {message.updated_at.getTime() !== message.created_at.getTime() ? (
+                    <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">edited</Text>
+                  ) : null}
+                  {reactionEntries.length > 0 ? (
+                    <View className="mt-1 flex-row gap-1">
+                      {reactionEntries.map(([type, count]) => (
+                        <View
+                          key={`${message.id}-reaction-${type}`}
+                          className="flex-row items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">
+                          <Text className="text-xs">
+                            {type} {count}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                  {showSeen ? <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">Seen</Text> : null}
+                </Pressable>
+              );
+            }}
+            ListEmptyComponent={
+              <Text className="mt-10 text-center text-base text-zinc-400 dark:text-zinc-500">
+                No messages yet. Say hello.
+              </Text>
+            }
+          />
+
+          {typingUsers.length > 0 ? (
+            <Text className="px-4 pb-1 text-xs text-zinc-400 dark:text-zinc-500">
+              {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+            </Text>
+          ) : null}
+
+          {replyingTo || editingMessage ? (
+            <View className="flex-row items-center justify-between border-t border-zinc-100 bg-zinc-50 px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900">
+              <View className="flex-1">
+                <Text className="text-xs font-medium text-accent">
+                  {editingMessage ? 'Editing message' : `Replying to ${replyingTo?.user?.name ?? ''}`}
+                </Text>
+                {replyingTo ? (
+                  <Text className="text-sm text-zinc-500 dark:text-zinc-400" numberOfLines={1}>
+                    {replyingTo.text || 'Photo'}
+                  </Text>
+                ) : null}
+              </View>
+              <Pressable onPress={cancelComposerExtra} hitSlop={8}>
+                <Ionicons name="close" size={20} color="#71717a" />
+              </Pressable>
+            </View>
+          ) : null}
+
+          <View className="flex-row items-center gap-2 border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
+            <Pressable
+              onPress={handleAttach}
+              disabled={sendingImage || !channel}
+              className="items-center justify-center rounded-full bg-zinc-100 p-2 disabled:opacity-50 dark:bg-zinc-800">
+              {sendingImage ? <ActivityIndicator /> : <Ionicons name="image-outline" size={22} color="#6366f1" />}
+            </Pressable>
+            <TextInput
+              value={text}
+              onChangeText={handleTextChange}
+              placeholder="Message"
+              placeholderTextColor="#a1a1aa"
+              className="flex-1 rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              style={{ maxHeight: 120 }}
+              textAlignVertical="top"
+              multiline
+            />
+            <Pressable
+              onPress={handleSend}
+              disabled={sending || !text.trim() || !channel}
+              className="items-center justify-center rounded-full bg-accent px-4 py-2 disabled:opacity-50">
+              <Text className="font-medium text-white">{editingMessage ? 'Save' : 'Send'}</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
 
       <Modal visible={infoVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark">
