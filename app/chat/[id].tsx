@@ -233,11 +233,10 @@ export default function ChatScreen() {
 
   async function sendPhotoFrom(pick: () => Promise<{ uri: string; fileName: string | null } | null>) {
     if (!channel) return;
-    const image = await pick();
-    if (!image) return;
-
     setSendingImage(true);
     try {
+      const image = await pick();
+      if (!image) return;
       const result = await channel.sendImage(image.uri, image.fileName ?? undefined);
       await channel.sendMessage({ attachments: [{ type: 'image', image_url: result.file }] });
     } catch (err) {

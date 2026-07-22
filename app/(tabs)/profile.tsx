@@ -26,11 +26,10 @@ export default function ProfileScreen() {
 
   async function uploadFrom(pick: () => Promise<{ uri: string; fileName: string | null } | null>) {
     if (!client || !user) return;
-    const image = await pick();
-    if (!image) return;
-
     setUploading(true);
     try {
+      const image = await pick();
+      if (!image) return;
       const result = await client.uploadImage(image.uri, image.fileName ?? undefined);
       await updateAvatar(user.uid, result.file);
     } catch (err) {

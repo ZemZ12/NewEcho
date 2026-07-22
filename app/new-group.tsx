@@ -38,6 +38,7 @@ export default function NewGroupScreen() {
 
     let cancelled = false;
     setSearching(true);
+    setError(null);
     firestore()
       .collection('users')
       .where('usernameLower', '>=', query)
@@ -51,6 +52,11 @@ export default function NewGroupScreen() {
           .map((docSnap) => ({ uid: docSnap.id, username: (docSnap.data().username as string) ?? docSnap.id }))
           .filter((row) => row.uid !== user?.uid && !selectedIds.has(row.uid));
         setResults(rows);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn('Could not search users:', err);
+        setError('Could not search right now. Try again.');
       })
       .finally(() => {
         if (!cancelled) setSearching(false);
