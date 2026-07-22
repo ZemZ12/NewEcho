@@ -53,8 +53,8 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [sendingImage, setSendingImage] = useState(false);
-  const [memberTick, setMemberTick] = useState(0);
-  const [presenceTick, setPresenceTick] = useState(0);
+  const [, setMemberTick] = useState(0);
+  const [, setPresenceTick] = useState(0);
   const [infoVisible, setInfoVisible] = useState(false);
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
   const [actionTarget, setActionTarget] = useState<LocalMessage | null>(null);
@@ -331,7 +331,7 @@ export default function ChatScreen() {
           ),
         }}
       />
-      <View className="flex-1" style={{ paddingBottom: keyboardHeight }} key={presenceTick}>
+      <View className="flex-1" style={{ paddingBottom: keyboardHeight }}>
         <FlatList
           data={messages}
           keyExtractor={(message) => message.id}
@@ -440,7 +440,7 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      <Modal visible={infoVisible} animationType="slide" presentationStyle="pageSheet" key={memberTick}>
+      <Modal visible={infoVisible} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark">
           <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
             <Text className="text-2xl font-semibold text-zinc-900 dark:text-white">Members</Text>

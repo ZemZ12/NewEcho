@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "web",
+      "name": "dev-client",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["expo", "start", "--web"],
+      "runtimeArgs": ["expo", "start", "--dev-client"],
       "port": 8081
     }
   ]
