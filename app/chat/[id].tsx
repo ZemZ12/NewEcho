@@ -391,7 +391,7 @@ export default function ChatScreen() {
                       <Text className={isMine ? 'text-white' : 'text-zinc-900 dark:text-white'}>{message.text}</Text>
                     </View>
                   ) : null}
-                  {message.updated_at.getTime() !== message.created_at.getTime() ? (
+                  {message.message_text_updated_at ? (
                     <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">edited</Text>
                   ) : null}
                   {reactionEntries.length > 0 ? (
