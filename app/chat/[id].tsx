@@ -11,7 +11,17 @@ import { useStreamChat } from '@/hooks/useStreamChat';
 import { channelDisplayName } from '@/lib/channelDisplayName';
 import { pickImageFromCamera, pickImageFromLibrary } from '@/lib/pickImage';
 
-const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢'];
+// Stream's reaction `type` field only allows alphanumeric/underscore/dash/dot
+// characters — raw emoji aren't valid, so each reaction needs a plain-string
+// type sent to Stream, mapped to the emoji actually shown in the UI.
+const REACTIONS = [
+  { type: 'thumbsup', emoji: '👍' },
+  { type: 'heart', emoji: '❤️' },
+  { type: 'laugh', emoji: '😂' },
+  { type: 'wow', emoji: '😮' },
+  { type: 'sad', emoji: '😢' },
+];
+const REACTION_EMOJI_BY_TYPE = Object.fromEntries(REACTIONS.map((r) => [r.type, r.emoji]));
 
 function formatRelative(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -173,15 +183,15 @@ export default function ChatScreen() {
     setText('');
   }
 
-  async function handleReactionPress(emoji: string) {
+  async function handleReactionPress(type: string) {
     if (!channel || !actionTarget) return;
-    const alreadyReacted = actionTarget.own_reactions?.some((reaction) => reaction.type === emoji);
+    const alreadyReacted = actionTarget.own_reactions?.some((reaction) => reaction.type === type);
     setActionTarget(null);
     try {
       if (alreadyReacted) {
-        await channel.deleteReaction(actionTarget.id, emoji);
+        await channel.deleteReaction(actionTarget.id, type);
       } else {
-        await channel.sendReaction(actionTarget.id, { type: emoji });
+        await channel.sendReaction(actionTarget.id, { type });
       }
     } catch (err) {
       Alert.alert('Could not react', err instanceof Error ? err.message : undefined);
@@ -391,7 +401,7 @@ export default function ChatScreen() {
                           key={`${message.id}-reaction-${type}`}
                           className="flex-row items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">
                           <Text className="text-xs">
-                            {type} {count}
+                            {REACTION_EMOJI_BY_TYPE[type] ?? type} {count}
                           </Text>
                         </View>
                       ))}
@@ -519,8 +529,8 @@ export default function ChatScreen() {
         <Pressable className="flex-1 items-center justify-center bg-black/40 px-8" onPress={() => setActionTarget(null)}>
           <Pressable className="w-full gap-1 rounded-2xl bg-white p-3 dark:bg-zinc-800" onPress={(event) => event.stopPropagation()}>
             <View className="flex-row justify-center gap-3 border-b border-zinc-100 pb-3 dark:border-zinc-700">
-              {REACTION_EMOJIS.map((emoji) => (
-                <Pressable key={emoji} onPress={() => handleReactionPress(emoji)} hitSlop={6}>
+              {REACTIONS.map(({ type, emoji }) => (
+                <Pressable key={type} onPress={() => handleReactionPress(type)} hitSlop={6}>
                   <Text className="text-2xl">{emoji}</Text>
                 </Pressable>
               ))}
