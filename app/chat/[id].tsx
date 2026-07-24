@@ -1,8 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MotiView } from 'moti';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Keyboard, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Keyboard,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel, LocalMessage } from 'stream-chat';
 
@@ -49,6 +62,38 @@ function isSeenByOthers(channel: Channel, message: LocalMessage, currentUserId: 
     if (userId === currentUserId) return false;
     return new Date(read.last_read).getTime() >= createdAt;
   });
+}
+
+// Sent-message bubble: an outlined, unfilled shape while unread, animating to
+// a filled gradient once the other person has read it. Two absolutely
+// positioned layers crossfade on top of each other (rather than trying to
+// animate individual style props across the read/unread boundary) so the
+// transition stays smooth regardless of what's changing.
+function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
+  return (
+    <View className="max-w-[80%] overflow-hidden rounded-2xl">
+      <MotiView
+        animate={{ opacity: seen ? 0 : 1 }}
+        transition={{ type: 'timing', duration: 400 }}
+        className="rounded-2xl border-2 border-accent"
+        style={StyleSheet.absoluteFillObject}
+      />
+      <MotiView
+        animate={{ opacity: seen ? 1 : 0 }}
+        transition={{ type: 'timing', duration: 400 }}
+        style={StyleSheet.absoluteFillObject}>
+        <LinearGradient
+          colors={['#818cf8', '#4f46e5']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </MotiView>
+      <View className="px-4 py-2">
+        <Text style={{ color: seen ? '#ffffff' : '#6366f1' }}>{text}</Text>
+      </View>
+    </View>
+  );
 }
 
 // Plain message list + input for now — custom bubbles/animations land in M2.
@@ -322,7 +367,6 @@ export default function ChatScreen() {
   }
 
   const members = channel ? Object.values(channel.state.members) : [];
-  const lastMessage = messages[messages.length - 1];
   const isActionTargetMine = actionTarget?.user?.id === user?.uid;
 
   return (
@@ -368,7 +412,7 @@ export default function ChatScreen() {
               const isMine = message.user?.id === user?.uid;
               const images = (message.attachments ?? []).filter((attachment) => attachment.type === 'image');
               const reactionEntries = Object.entries(message.reaction_counts ?? {}).filter(([, count]) => count > 0);
-              const showSeen = isMine && channel && message.id === lastMessage?.id && isSeenByOthers(channel, message, user?.uid ?? '');
+              const seen = isMine && !!channel && isSeenByOthers(channel, message, user?.uid ?? '');
               return (
                 <Pressable onLongPress={() => setActionTarget(message)} className={isMine ? 'items-end' : 'items-start'}>
                   {message.quoted_message ? (
@@ -387,9 +431,13 @@ export default function ChatScreen() {
                     />
                   ))}
                   {message.text ? (
-                    <View className={`max-w-[80%] rounded-2xl px-4 py-2 ${isMine ? 'bg-accent' : 'bg-zinc-100 dark:bg-zinc-800'}`}>
-                      <Text className={isMine ? 'text-white' : 'text-zinc-900 dark:text-white'}>{message.text}</Text>
-                    </View>
+                    isMine ? (
+                      <SentTextBubble text={message.text} seen={seen} />
+                    ) : (
+                      <View className="max-w-[80%] rounded-2xl bg-zinc-100 px-4 py-2 dark:bg-zinc-800">
+                        <Text className="text-zinc-900 dark:text-white">{message.text}</Text>
+                      </View>
+                    )
                   ) : null}
                   {message.message_text_updated_at ? (
                     <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">edited</Text>
@@ -407,7 +455,6 @@ export default function ChatScreen() {
                       ))}
                     </View>
                   ) : null}
-                  {showSeen ? <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">Seen</Text> : null}
                 </Pressable>
               );
             }}
