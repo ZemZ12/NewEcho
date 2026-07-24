@@ -7,6 +7,12 @@ import { StreamChat } from 'stream-chat';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 
+// Must match the "Name" given to the Firebase push configuration in Stream's
+// dashboard (Chat Messaging > Push Notifications) — addDevice's push_provider
+// argument alone ('firebase') isn't enough to identify which configuration
+// to use, so calls without this name were silently failing to register.
+const PUSH_PROVIDER_NAME = 'firebaseNotification';
+
 // Requests notification permission, registers the device's FCM token with
 // Stream (so Stream can push through Firebase when this device isn't
 // actively watching a channel), and keeps it current on token refresh.
@@ -16,7 +22,7 @@ async function registerPushDevice(chatClient: StreamChat) {
     const messaging = getMessaging(getApp());
     await requestPermission(messaging);
     const token = await getToken(messaging);
-    await chatClient.addDevice(token, 'firebase');
+    await chatClient.addDevice(token, 'firebase', undefined, PUSH_PROVIDER_NAME);
   } catch (err) {
     console.warn('Could not register push device:', err);
   }
@@ -85,7 +91,9 @@ export function StreamChatProvider({ children }: PropsWithChildren) {
 
         registerPushDevice(chatClient);
         unsubscribeTokenRefresh = onTokenRefresh(getMessaging(getApp()), (token) => {
-          chatClient.addDevice(token, 'firebase').catch((err) => console.warn('Could not update push device:', err));
+          chatClient
+            .addDevice(token, 'firebase', undefined, PUSH_PROVIDER_NAME)
+            .catch((err) => console.warn('Could not update push device:', err));
         });
       } catch (err) {
         if (cancelled) return;

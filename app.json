@@ -14,8 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zemz.newecho",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "bundleIdentifier": "com.zemz.newecho"
     },
     "android": {
       "package": "com.zemz.newecho",
