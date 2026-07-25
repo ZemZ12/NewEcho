@@ -69,18 +69,23 @@ function isSeenByOthers(channel: Channel, message: LocalMessage, currentUserId: 
 // positioned layers crossfade on top of each other (rather than trying to
 // animate individual style props across the read/unread boundary) so the
 // transition stays smooth regardless of what's changing.
+const BUBBLE_FILL_DURATION = 1400;
+
 function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
   return (
-    <View className="max-w-[80%] overflow-hidden rounded-2xl">
+    <MotiView
+      animate={{ scale: seen ? [1, 1.045, 1] : 1 }}
+      transition={{ type: 'timing', duration: BUBBLE_FILL_DURATION }}
+      className="max-w-[80%] overflow-hidden rounded-2xl">
       <MotiView
         animate={{ opacity: seen ? 0 : 1 }}
-        transition={{ type: 'timing', duration: 400 }}
+        transition={{ type: 'timing', duration: BUBBLE_FILL_DURATION }}
         className="rounded-2xl border-2 border-accent"
         style={StyleSheet.absoluteFillObject}
       />
       <MotiView
         animate={{ opacity: seen ? 1 : 0 }}
-        transition={{ type: 'timing', duration: 400 }}
+        transition={{ type: 'timing', duration: BUBBLE_FILL_DURATION }}
         style={StyleSheet.absoluteFillObject}>
         <LinearGradient
           colors={['#818cf8', '#4f46e5']}
@@ -92,7 +97,7 @@ function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
       <View className="px-4 py-2">
         <Text style={{ color: seen ? '#ffffff' : '#6366f1' }}>{text}</Text>
       </View>
-    </View>
+    </MotiView>
   );
 }
 
