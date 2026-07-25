@@ -70,10 +70,9 @@ function isSeenByOthers(channel: Channel, message: LocalMessage, currentUserId: 
 // animate individual style props across the read/unread boundary) so the
 // transition stays smooth regardless of what's changing.
 const FILL_DURATION = 500;
-const PULSE_DURATION = 220;
 
 function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
-  const pulseDelay = seen ? FILL_DURATION : 0;
+  const borderFadeDelay = seen ? FILL_DURATION : 0;
   // Delayed rather than switching instantly: the wipe only covers the left
   // portion of the bubble at first, so white text would be unreadable over
   // the still-unfilled right portion until the fill actually reaches it.
@@ -88,13 +87,10 @@ function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
   }, [seen]);
 
   return (
-    <MotiView
-      animate={{ scale: seen ? [1, 1.045, 1] : 1 }}
-      transition={{ scale: { type: 'timing', duration: PULSE_DURATION, delay: pulseDelay } }}
-      className="max-w-[80%] overflow-hidden rounded-2xl">
+    <View className="max-w-[80%] overflow-hidden rounded-2xl">
       <MotiView
         animate={{ opacity: seen ? 0 : 1 }}
-        transition={{ type: 'timing', duration: 200, delay: pulseDelay }}
+        transition={{ type: 'timing', duration: 200, delay: borderFadeDelay }}
         className="rounded-2xl border-2 border-accent"
         style={StyleSheet.absoluteFillObject}
       />
@@ -114,7 +110,7 @@ function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
       <View className="px-4 py-2">
         <Text style={{ color: textWhite ? '#ffffff' : '#6366f1' }}>{text}</Text>
       </View>
-    </MotiView>
+    </View>
   );
 }
 
