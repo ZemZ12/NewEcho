@@ -69,33 +69,50 @@ function isSeenByOthers(channel: Channel, message: LocalMessage, currentUserId: 
 // positioned layers crossfade on top of each other (rather than trying to
 // animate individual style props across the read/unread boundary) so the
 // transition stays smooth regardless of what's changing.
-const BUBBLE_FILL_DURATION = 1400;
+const FILL_DURATION = 500;
+const PULSE_DURATION = 220;
 
 function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
+  const pulseDelay = seen ? FILL_DURATION : 0;
+  // Delayed rather than switching instantly: the wipe only covers the left
+  // portion of the bubble at first, so white text would be unreadable over
+  // the still-unfilled right portion until the fill actually reaches it.
+  const [textWhite, setTextWhite] = useState(false);
+  useEffect(() => {
+    if (!seen) {
+      setTextWhite(false);
+      return;
+    }
+    const timeout = setTimeout(() => setTextWhite(true), FILL_DURATION);
+    return () => clearTimeout(timeout);
+  }, [seen]);
+
   return (
     <MotiView
       animate={{ scale: seen ? [1, 1.045, 1] : 1 }}
-      transition={{ type: 'timing', duration: BUBBLE_FILL_DURATION }}
+      transition={{ scale: { type: 'timing', duration: PULSE_DURATION, delay: pulseDelay } }}
       className="max-w-[80%] overflow-hidden rounded-2xl">
       <MotiView
         animate={{ opacity: seen ? 0 : 1 }}
-        transition={{ type: 'timing', duration: BUBBLE_FILL_DURATION }}
+        transition={{ type: 'timing', duration: 200, delay: pulseDelay }}
         className="rounded-2xl border-2 border-accent"
         style={StyleSheet.absoluteFillObject}
       />
+      {/* Left-to-right wipe: this layer's width grows from 0 to 100%, and
+          overflow-hidden on the outer bubble clips it to the rounded shape. */}
       <MotiView
-        animate={{ opacity: seen ? 1 : 0 }}
-        transition={{ type: 'timing', duration: BUBBLE_FILL_DURATION }}
-        style={StyleSheet.absoluteFillObject}>
+        animate={{ width: seen ? '100%' : '0%' }}
+        transition={{ type: 'timing', duration: FILL_DURATION }}
+        style={{ position: 'absolute', top: 0, bottom: 0, left: 0 }}>
         <LinearGradient
           colors={['#818cf8', '#4f46e5']}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          end={{ x: 1, y: 0 }}
           style={StyleSheet.absoluteFillObject}
         />
       </MotiView>
       <View className="px-4 py-2">
-        <Text style={{ color: seen ? '#ffffff' : '#6366f1' }}>{text}</Text>
+        <Text style={{ color: textWhite ? '#ffffff' : '#6366f1' }}>{text}</Text>
       </View>
     </MotiView>
   );
