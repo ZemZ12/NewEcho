@@ -8,12 +8,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/hooks/useAuth';
 import { updateAvatar, useProfile } from '@/hooks/useProfile';
 import { useStreamChat } from '@/hooks/useStreamChat';
+import { type ThemePreference, useAppTheme } from '@/hooks/useTheme';
 import { pickImageFromCamera, pickImageFromLibrary } from '@/lib/pickImage';
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+];
 
 export default function ProfileScreen() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { client } = useStreamChat();
+  const { preference, setPreference } = useAppTheme();
   const [uploading, setUploading] = useState(false);
 
   function handleChangePhoto() {
@@ -65,6 +73,30 @@ export default function ProfileScreen() {
           {profile?.username ?? 'Signed in'}
         </Text>
         <Text className="mb-3 text-center text-base text-zinc-400 dark:text-zinc-500">{user?.phoneNumber}</Text>
+
+        <View className="mb-6 w-full gap-2">
+          <Text className="text-sm font-medium text-zinc-400 dark:text-zinc-500">Theme</Text>
+          <View className="flex-row gap-2">
+            {THEME_OPTIONS.map((option) => (
+              <Pressable
+                key={option.value}
+                onPress={() => setPreference(option.value)}
+                className={`flex-1 items-center rounded-xl py-2 ${
+                  preference === option.value ? 'bg-accent' : 'bg-zinc-100 dark:bg-zinc-800'
+                }`}>
+                <Text
+                  className={
+                    preference === option.value
+                      ? 'font-medium text-white'
+                      : 'text-zinc-600 dark:text-zinc-300'
+                  }>
+                  {option.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
         <Pressable
           onPress={() => signOut(getAuth(getApp()))}
           className="items-center rounded-full bg-accent px-4 py-3">

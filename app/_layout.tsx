@@ -6,11 +6,11 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { useNotificationNavigation } from '@/hooks/useNotificationNavigation';
 import { ProfileProvider, useProfile } from '@/hooks/useProfile';
 import { StreamChatProvider } from '@/hooks/useStreamChat';
+import { AppThemeProvider, useAppTheme } from '@/hooks/useTheme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -44,8 +44,23 @@ function RootNavigator() {
   );
 }
 
+function ThemedApp() {
+  const { colorScheme } = useAppTheme();
+
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <AuthProvider>
+        <ProfileProvider>
+          <StreamChatProvider>
+            <RootNavigator />
+          </StreamChatProvider>
+        </ProfileProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
@@ -61,14 +76,8 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AuthProvider>
-        <ProfileProvider>
-          <StreamChatProvider>
-            <RootNavigator />
-          </StreamChatProvider>
-        </ProfileProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AppThemeProvider>
+      <ThemedApp />
+    </AppThemeProvider>
   );
 }
