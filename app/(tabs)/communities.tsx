@@ -3,11 +3,16 @@ import firestore from '@react-native-firebase/firestore';
 import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useRubberBandList } from '@/hooks/useRubberBandList';
 import type { Community } from '@/lib/communities';
 import { PREFIX_RANGE_END } from '@/lib/firestoreSearch';
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList) as typeof FlatList;
 
 export default function CommunitiesScreen() {
   const { user } = useAuth();
@@ -19,6 +24,8 @@ export default function CommunitiesScreen() {
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<Community[]>([]);
   const [searching, setSearching] = useState(false);
+
+  const { listRef, gesture, bounceStyle, onScroll, onContentSizeChange, onLayout } = useRubberBandList();
 
   useEffect(() => {
     if (!user) return;
@@ -97,26 +104,35 @@ export default function CommunitiesScreen() {
       {search.trim() ? (
         <>
           {searching ? <ActivityIndicator className="mt-2" /> : null}
-          <FlatList
-            data={searchResults}
-            keyExtractor={(community) => community.id}
-            contentContainerClassName="px-5"
-            renderItem={({ item: community }) => (
-              <Pressable
-                onPress={() => router.push({ pathname: '/communities/[id]', params: { id: community.id } })}
-                className="border-b border-zinc-100 py-3 dark:border-zinc-800">
-                <Text className="text-base font-medium text-zinc-900 dark:text-white">{community.name}</Text>
-                <Text className="text-sm text-zinc-400 dark:text-zinc-500" numberOfLines={1}>
-                  {community.description || `${community.memberIds.length} members`}
-                </Text>
-              </Pressable>
-            )}
-            ListEmptyComponent={
-              !searching ? (
-                <Text className="mt-4 text-center text-sm text-zinc-400 dark:text-zinc-500">No communities found.</Text>
-              ) : null
-            }
-          />
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={[{ flex: 1 }, bounceStyle]}>
+              <AnimatedFlatList
+                ref={listRef}
+                data={searchResults}
+                keyExtractor={(community) => community.id}
+                contentContainerClassName="px-5"
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+                onContentSizeChange={onContentSizeChange}
+                onLayout={onLayout}
+                renderItem={({ item: community }) => (
+                  <Pressable
+                    onPress={() => router.push({ pathname: '/communities/[id]', params: { id: community.id } })}
+                    className="border-b border-zinc-100 py-3 dark:border-zinc-800">
+                    <Text className="text-base font-medium text-zinc-900 dark:text-white">{community.name}</Text>
+                    <Text className="text-sm text-zinc-400 dark:text-zinc-500" numberOfLines={1}>
+                      {community.description || `${community.memberIds.length} members`}
+                    </Text>
+                  </Pressable>
+                )}
+                ListEmptyComponent={
+                  !searching ? (
+                    <Text className="mt-4 text-center text-sm text-zinc-400 dark:text-zinc-500">No communities found.</Text>
+                  ) : null
+                }
+              />
+            </Animated.View>
+          </GestureDetector>
         </>
       ) : loadError ? (
         <View className="flex-1 items-center justify-center gap-3 px-10">
@@ -131,21 +147,30 @@ export default function CommunitiesScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={myCommunities}
-          keyExtractor={(community) => community.id}
-          contentContainerClassName="px-5"
-          renderItem={({ item: community }) => (
-            <Pressable
-              onPress={() => router.push({ pathname: '/communities/[id]', params: { id: community.id } })}
-              className="border-b border-zinc-100 py-3 dark:border-zinc-800">
-              <Text className="text-base font-medium text-zinc-900 dark:text-white">{community.name}</Text>
-              <Text className="text-sm text-zinc-400 dark:text-zinc-500" numberOfLines={1}>
-                {community.description || `${community.memberIds.length} members`}
-              </Text>
-            </Pressable>
-          )}
-        />
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[{ flex: 1 }, bounceStyle]}>
+            <AnimatedFlatList
+              ref={listRef}
+              data={myCommunities}
+              keyExtractor={(community) => community.id}
+              contentContainerClassName="px-5"
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              onContentSizeChange={onContentSizeChange}
+              onLayout={onLayout}
+              renderItem={({ item: community }) => (
+                <Pressable
+                  onPress={() => router.push({ pathname: '/communities/[id]', params: { id: community.id } })}
+                  className="border-b border-zinc-100 py-3 dark:border-zinc-800">
+                  <Text className="text-base font-medium text-zinc-900 dark:text-white">{community.name}</Text>
+                  <Text className="text-sm text-zinc-400 dark:text-zinc-500" numberOfLines={1}>
+                    {community.description || `${community.memberIds.length} members`}
+                  </Text>
+                </Pressable>
+              )}
+            />
+          </Animated.View>
+        </GestureDetector>
       )}
     </SafeAreaView>
   );

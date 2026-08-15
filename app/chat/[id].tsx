@@ -16,10 +16,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel, LocalMessage } from 'stream-chat';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useRubberBandList } from '@/hooks/useRubberBandList';
 import { useStreamChat } from '@/hooks/useStreamChat';
 import { channelDisplayName } from '@/lib/channelDisplayName';
 import { pickImageFromCamera, pickImageFromLibrary } from '@/lib/pickImage';
@@ -73,18 +76,6 @@ const FILL_DURATION = 500;
 
 function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
   const borderFadeDelay = seen ? FILL_DURATION : 0;
-  // Delayed rather than switching instantly: the wipe only covers the left
-  // portion of the bubble at first, so white text would be unreadable over
-  // the still-unfilled right portion until the fill actually reaches it.
-  const [textWhite, setTextWhite] = useState(false);
-  useEffect(() => {
-    if (!seen) {
-      setTextWhite(false);
-      return;
-    }
-    const timeout = setTimeout(() => setTextWhite(true), FILL_DURATION);
-    return () => clearTimeout(timeout);
-  }, [seen]);
 
   return (
     <View className="max-w-[80%] overflow-hidden rounded-2xl">
@@ -108,7 +99,7 @@ function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
         />
       </MotiView>
       <View className="px-4 py-2">
-        <Text style={{ color: textWhite ? '#ffffff' : '#6366f1' }}>{text}</Text>
+        <Text style={{ color: seen ? '#ffffff' : '#6366f1' }}>{text}</Text>
       </View>
     </View>
   );
@@ -143,6 +134,15 @@ export default function ChatScreen() {
 
   const title = channel && user ? channelDisplayName(channel, user.uid) : (id ?? 'Chat');
   const subtitle = channel && user ? presenceSubtitle(channel, user.uid) : null;
+
+  const {
+    listRef,
+    gesture: listGesture,
+    bounceStyle,
+    onScroll: onListScroll,
+    onContentSizeChange: onListContentSizeChange,
+    onLayout: onListLayout,
+  } = useRubberBandList();
 
   // Tracked manually rather than via KeyboardAvoidingView: on this
   // Expo/Android edge-to-edge setup neither KeyboardAvoidingView's
@@ -423,10 +423,18 @@ export default function ChatScreen() {
         </View>
       ) : (
         <View className="flex-1" style={{ paddingBottom: keyboardHeight }}>
-          <FlatList
+          <GestureDetector gesture={listGesture}>
+          <Animated.View style={[{ flex: 1 }, bounceStyle]}>
+          <Animated.FlatList
+            ref={listRef}
             data={messages}
             keyExtractor={(message) => message.id}
             contentContainerClassName="gap-2 px-4 py-3"
+            overScrollMode="never"
+            onScroll={onListScroll}
+            scrollEventThrottle={16}
+            onContentSizeChange={onListContentSizeChange}
+            onLayout={onListLayout}
             renderItem={({ item: message }) => {
               const isMine = message.user?.id === user?.uid;
               const images = (message.attachments ?? []).filter((attachment) => attachment.type === 'image');
@@ -483,6 +491,8 @@ export default function ChatScreen() {
               </Text>
             }
           />
+          </Animated.View>
+          </GestureDetector>
 
           {typingUsers.length > 0 ? (
             <Text className="px-4 pb-1 text-xs text-zinc-400 dark:text-zinc-500">

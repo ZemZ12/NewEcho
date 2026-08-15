@@ -1,14 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import firestore from '@react-native-firebase/firestore';
-import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, Text, View } from 'react-native';
+import { Link, Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, Text, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel } from 'stream-chat';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useRubberBandList } from '@/hooks/useRubberBandList';
 import { useStreamChat } from '@/hooks/useStreamChat';
 import { joinCommunityDoc, leaveCommunityDoc, type Community } from '@/lib/communities';
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList) as typeof FlatList;
 
 export default function CommunityScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,6 +26,9 @@ export default function CommunityScreen() {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [channelsLoading, setChannelsLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const { listRef, gesture, bounceStyle, onScroll, onContentSizeChange, onLayout } = useRubberBandList();
 
   const isMember = !!(user && community?.memberIds.includes(user.uid));
 
@@ -41,36 +49,39 @@ export default function CommunityScreen() {
       );
   }, [id]);
 
-  useEffect(() => {
+  const loadChannels = useCallback(async () => {
     if (!client || !id || !isMember) {
       setChannelsLoading(false);
       return;
     }
     setChannelsLoading(true);
-    let cancelled = false;
-
-    async function loadChannels() {
-      try {
-        const result = await client!.queryChannels(
-          { type: 'team', team: id },
-          { last_message_at: -1 },
-          { watch: true, state: true },
-        );
-        if (!cancelled) setChannels(result);
-      } catch (err) {
-        console.warn('Could not load channels:', err);
-      } finally {
-        if (!cancelled) setChannelsLoading(false);
-      }
+    try {
+      const result = await client.queryChannels(
+        { type: 'team', team: id },
+        { last_message_at: -1 },
+        { watch: true, state: true },
+      );
+      setChannels(result);
+    } catch (err) {
+      console.warn('Could not load channels:', err);
+    } finally {
+      setChannelsLoading(false);
     }
+  }, [client, id, isMember]);
 
-    loadChannels();
+  useEffect(() => {
+    if (!client || !isMember) return;
     const handler = client.on('notification.added_to_channel', loadChannels);
     return () => {
-      cancelled = true;
       handler.unsubscribe();
     };
-  }, [client, id, isMember]);
+  }, [client, isMember, loadChannels]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadChannels();
+    }, [loadChannels]),
+  );
 
   async function handleJoin() {
     if (!user || !community || !client) return;
@@ -132,9 +143,14 @@ export default function CommunityScreen() {
           title: community.name,
           headerRight: isMember
             ? () => (
-                <Link href={{ pathname: '/new-channel', params: { communityId: community.id } }}>
-                  <Ionicons name="add" size={26} color="#6366f1" />
-                </Link>
+                <View className="flex-row items-center gap-4">
+                  <Link href={{ pathname: '/new-channel', params: { communityId: community.id } }}>
+                    <Ionicons name="add" size={26} color="#6366f1" />
+                  </Link>
+                  <Pressable onPress={() => setMenuVisible(true)} hitSlop={8}>
+                    <Ionicons name="ellipsis-horizontal" size={22} color="#71717a" />
+                  </Pressable>
+                </View>
               )
             : undefined,
         }}
@@ -162,28 +178,50 @@ export default function CommunityScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={channels}
-          keyExtractor={(channel) => channel.cid}
-          contentContainerClassName="px-5 pt-2"
-          renderItem={({ item: channel }) => (
-            <Pressable
-              onPress={() => router.push({ pathname: '/chat/[id]', params: { id: channel.id!, type: 'team' } })}
-              className="flex-row items-center gap-2 border-b border-zinc-100 py-3 dark:border-zinc-800">
-              <Ionicons name="pricetag-outline" size={16} color="#a1a1aa" />
-              <Text className="text-base text-zinc-900 dark:text-white">{channel.data?.name ?? channel.id}</Text>
-            </Pressable>
-          )}
-        />
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[{ flex: 1 }, bounceStyle]}>
+            <AnimatedFlatList
+              ref={listRef}
+              data={channels}
+              keyExtractor={(channel) => channel.cid}
+              contentContainerClassName="px-5 pt-2"
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              onContentSizeChange={onContentSizeChange}
+              onLayout={onLayout}
+              renderItem={({ item: channel }) => (
+                <Pressable
+                  onPress={() => router.push({ pathname: '/chat/[id]', params: { id: channel.id!, type: 'team' } })}
+                  className="flex-row items-center gap-2 border-b border-zinc-100 py-3 dark:border-zinc-800">
+                  <Ionicons name="pricetag-outline" size={16} color="#a1a1aa" />
+                  <Text className="text-base text-zinc-900 dark:text-white">{channel.data?.name ?? channel.id}</Text>
+                </Pressable>
+              )}
+            />
+          </Animated.View>
+        </GestureDetector>
       )}
 
-      {isMember ? (
-        <View className="px-5 pb-4 pt-2">
-          <Pressable onPress={handleLeave} className="items-center rounded-full bg-red-500 px-4 py-3">
-            <Text className="font-medium text-white">Leave community</Text>
+      <Modal visible={menuVisible} transparent animationType="slide" onRequestClose={() => setMenuVisible(false)}>
+        <Pressable className="flex-1 justify-end bg-black/40" onPress={() => setMenuVisible(false)}>
+          <Pressable onPress={() => {}}>
+            <SafeAreaView edges={['bottom']} className="rounded-t-3xl bg-white dark:bg-surface-dark">
+              <View className="items-center pt-2">
+                <View className="h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+              </View>
+              <Pressable
+                onPress={() => {
+                  setMenuVisible(false);
+                  handleLeave();
+                }}
+                className="flex-row items-center gap-3 px-5 py-4">
+                <Ionicons name="exit-outline" size={20} color="#ef4444" />
+                <Text className="text-base font-medium text-red-500">Leave community</Text>
+              </Pressable>
+            </SafeAreaView>
           </Pressable>
-        </View>
-      ) : null}
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

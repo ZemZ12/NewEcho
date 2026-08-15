@@ -3,12 +3,17 @@ import { FlashList } from '@shopify/flash-list';
 import { Link, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel, MessageResponse } from 'stream-chat';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useRubberBandList } from '@/hooks/useRubberBandList';
 import { useStreamChat } from '@/hooks/useStreamChat';
 import { channelDisplayName } from '@/lib/channelDisplayName';
+
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList) as typeof FlashList;
 
 function lastMessagePreview(channel: Channel): string {
   const messages = channel.state.messages;
@@ -35,6 +40,8 @@ export default function ChatListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MessageResponse[]>([]);
   const [searching, setSearching] = useState(false);
+
+  const { listRef, gesture, bounceStyle, onScroll, onContentSizeChange, onLayout } = useRubberBandList();
 
   const loadChannels = useCallback(async () => {
     if (!client || !client.userID) return;
@@ -152,31 +159,40 @@ export default function ChatListScreen() {
           </Text>
         </View>
       ) : (
-        <FlashList
-          data={channels}
-          keyExtractor={(channel) => channel.cid}
-          renderItem={({ item: channel }) => {
-            const muted = channel.muteStatus().muted;
-            const online = user ? isOtherOnline(channel, user.uid) : false;
-            return (
-              <Pressable
-                onPress={() => router.push(`/chat/${channel.id}`)}
-                onLongPress={() => handleDelete(channel)}
-                className="flex-row items-center gap-3 border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
-                {online ? <View className="h-2.5 w-2.5 rounded-full bg-green-500" /> : null}
-                <View className="flex-1">
-                  <Text className="text-base font-medium text-zinc-900 dark:text-white" numberOfLines={1}>
-                    {channelDisplayName(channel, user?.uid ?? '')}
-                  </Text>
-                  <Text className="text-sm text-zinc-400 dark:text-zinc-500" numberOfLines={1}>
-                    {lastMessagePreview(channel)}
-                  </Text>
-                </View>
-                {muted ? <Ionicons name="notifications-off-outline" size={16} color="#a1a1aa" /> : null}
-              </Pressable>
-            );
-          }}
-        />
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[{ flex: 1 }, bounceStyle]}>
+            <AnimatedFlashList
+              ref={listRef}
+              data={channels}
+              keyExtractor={(channel) => channel.cid}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              onContentSizeChange={onContentSizeChange}
+              onLayout={onLayout}
+              renderItem={({ item: channel }) => {
+                const muted = channel.muteStatus().muted;
+                const online = user ? isOtherOnline(channel, user.uid) : false;
+                return (
+                  <Pressable
+                    onPress={() => router.push(`/chat/${channel.id}`)}
+                    onLongPress={() => handleDelete(channel)}
+                    className="flex-row items-center gap-3 border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
+                    {online ? <View className="h-2.5 w-2.5 rounded-full bg-green-500" /> : null}
+                    <View className="flex-1">
+                      <Text className="text-base font-medium text-zinc-900 dark:text-white" numberOfLines={1}>
+                        {channelDisplayName(channel, user?.uid ?? '')}
+                      </Text>
+                      <Text className="text-sm text-zinc-400 dark:text-zinc-500" numberOfLines={1}>
+                        {lastMessagePreview(channel)}
+                      </Text>
+                    </View>
+                    {muted ? <Ionicons name="notifications-off-outline" size={16} color="#a1a1aa" /> : null}
+                  </Pressable>
+                );
+              }}
+            />
+          </Animated.View>
+        </GestureDetector>
       )}
 
       <Modal visible={searchVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSearchVisible(false)}>
