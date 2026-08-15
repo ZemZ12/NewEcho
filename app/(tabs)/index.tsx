@@ -40,7 +40,7 @@ export default function ChatListScreen() {
     if (!client || !client.userID) return;
     try {
       const result = await client.queryChannels(
-        { members: { $in: [client.userID] } },
+        { members: { $in: [client.userID] }, type: 'messaging' },
         { last_message_at: -1 },
         { watch: true, state: true, presence: true },
       );
@@ -78,7 +78,7 @@ export default function ChatListScreen() {
     let cancelled = false;
     setSearching(true);
     client
-      .search({ members: { $in: [client.userID ?? ''] } }, query, { limit: 20 })
+      .search({ members: { $in: [client.userID ?? ''] }, type: 'messaging' }, query, { limit: 20 })
       .then((result) => {
         if (!cancelled) setSearchResults(result.results.map((entry) => entry.message));
       })

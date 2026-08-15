@@ -6,11 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useStreamChat } from '@/hooks/useStreamChat';
+import { PREFIX_RANGE_END } from '@/lib/firestoreSearch';
 
 const MAX_GROUP_SIZE = 15;
-// Highest valid Unicode code point, used as a prefix-range upper bound for
-// Firestore "starts with" queries (there's no native startsWith operator).
-const PREFIX_RANGE_END = String.fromCharCode(0xf8ff);
 
 type UserResult = { uid: string; username: string };
 

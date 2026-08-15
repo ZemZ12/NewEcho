@@ -32,6 +32,9 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="chat/[id]" options={{ headerShown: true }} />
         <Stack.Screen name="new-group" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="communities/new" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="communities/[id]" options={{ headerShown: true }} />
+        <Stack.Screen name="new-channel" options={{ presentation: 'modal' }} />
       </Stack.Protected>
       <Stack.Protected guard={!user}>
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />

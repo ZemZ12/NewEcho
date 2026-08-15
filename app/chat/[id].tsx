@@ -116,7 +116,8 @@ function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
 
 // Plain message list + input for now — custom bubbles/animations land in M2.
 export default function ChatScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, type } = useLocalSearchParams<{ id: string; type?: string }>();
+  const channelType = type === 'team' ? 'team' : 'messaging';
   const { user } = useAuth();
   const { client } = useStreamChat();
   const router = useRouter();
@@ -163,7 +164,7 @@ export default function ChatScreen() {
     if (!client || !id) return;
 
     let cancelled = false;
-    const ch = client.channel('messaging', id);
+    const ch = client.channel(channelType, id);
     setLoadError(false);
 
     ch.watch({ presence: true })
@@ -212,7 +213,7 @@ export default function ChatScreen() {
       cancelled = true;
       handlers.forEach((handler) => handler.unsubscribe());
     };
-  }, [client, id, retryCount]);
+  }, [client, id, channelType, retryCount]);
 
   async function handleSend() {
     const trimmed = text.trim();
