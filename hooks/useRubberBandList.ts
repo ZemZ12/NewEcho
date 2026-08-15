@@ -7,7 +7,7 @@ import {
   withSpring,
 } from 'react-native-reanimated';
 
-const RUBBER_BAND_FACTOR = 0.03;
+const RUBBER_BAND_FACTOR = 0.06;
 
 // Android's FlatList/FlashList have no native elastic bounce (that's
 // iOS-only), so it's built by hand — a Pan gesture runs alongside the
