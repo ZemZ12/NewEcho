@@ -2,12 +2,11 @@ import { useEffect } from 'react';
 import Animated, { useAnimatedProps, useDerivedValue, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
-import { RIGHT_PADDING_CANDLES } from '@/components/CandlestickChart';
+import { DOWN_COLOR, RIGHT_PADDING_CANDLES, UP_COLOR } from '@/components/CandlestickChart';
+import { computeEffectiveRange } from '@/lib/chartAxis';
 import type { StockCandle } from '@/lib/marketData';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
-const UP_COLOR = '#22c55e';
-const DOWN_COLOR = '#ef4444';
 
 export type SmaKey = 'sma10' | 'sma50' | 'sma100' | 'sma200';
 type Columns = { opens: number[]; highs: number[]; lows: number[]; closes: number[] };
@@ -81,8 +80,6 @@ export function LiveCandleLayer({
     sma200.value = allSma.sma200;
   }, [allSma.sma200, sma200]);
 
-  const mid = (min + max) / 2;
-  const halfRange = (max - min || 1) / 2;
   const showSma10 = enabledSma.has('sma10');
   const showSma50 = enabledSma.has('sma50');
   const showSma100 = enabledSma.has('sma100');
@@ -94,9 +91,8 @@ export function LiveCandleLayer({
     const { opens, highs, lows, closes } = columns.value;
     const stepX = width / (count + RIGHT_PADDING_CANDLES);
     const bodyWidth = stepX * 0.6;
-    const effectiveHalf = halfRange / yZoomShared.value;
-    const effectiveMin = mid - effectiveHalf;
-    const effectiveRange = effectiveHalf * 2 || 1;
+    const { min: effectiveMin, max: effectiveMax } = computeEffectiveRange(min, max, yZoomShared.value);
+    const effectiveRange = effectiveMax - effectiveMin || 1;
     const toY = (value: number) => height - ((value - effectiveMin) / effectiveRange) * height;
 
     let upWicks = '';

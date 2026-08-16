@@ -1,11 +1,8 @@
 import { memo } from 'react';
 import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
-import { CHART_BG, RIGHT_PADDING_CANDLES } from '@/components/CandlestickChart';
+import { AXIS_TEXT_COLOR, CHART_BG, PRICE_AXIS_WIDTH, RIGHT_PADDING_CANDLES } from '@/components/CandlestickChart';
 import { buildLinePath } from '@/lib/chartPath';
-
-const AXIS_TEXT_COLOR = '#71717a';
-const PRICE_AXIS_WIDTH = 46;
 
 export const RsiChart = memo(function RsiChart({
   values,

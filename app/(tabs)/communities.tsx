@@ -8,9 +8,11 @@ import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useRubberBandList } from '@/hooks/useRubberBandList';
 import type { Community } from '@/lib/communities';
-import { PREFIX_RANGE_END } from '@/lib/firestoreSearch';
+import { ACCENT, MUTED_LIGHT } from '@/lib/colors';
+import { searchByPrefix } from '@/lib/firestoreSearch';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList) as typeof FlatList;
 
@@ -47,8 +49,10 @@ export default function CommunitiesScreen() {
       );
   }, [user]);
 
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   useEffect(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     if (!query) {
       setSearchResults([]);
       return;
@@ -56,12 +60,7 @@ export default function CommunitiesScreen() {
 
     let cancelled = false;
     setSearching(true);
-    firestore()
-      .collection('communities')
-      .where('nameLower', '>=', query)
-      .where('nameLower', '<=', query + PREFIX_RANGE_END)
-      .limit(15)
-      .get()
+    searchByPrefix('communities', 'nameLower', query, 15)
       .then((snapshot) => {
         if (cancelled) return;
         const myIds = new Set(myCommunities.map((community) => community.id));
@@ -78,14 +77,14 @@ export default function CommunitiesScreen() {
     return () => {
       cancelled = true;
     };
-  }, [search, myCommunities]);
+  }, [debouncedSearch, myCommunities]);
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-surface-dark" edges={['top']}>
       <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
         <Text className="text-3xl font-semibold text-zinc-900 dark:text-white">Communities</Text>
         <Link href="/communities/new" className="h-10 w-10 items-center justify-center">
-          <Ionicons name="add" size={28} color="#6366f1" />
+          <Ionicons name="add" size={28} color={ACCENT} />
         </Link>
       </View>
 
@@ -94,7 +93,7 @@ export default function CommunitiesScreen() {
           value={search}
           onChangeText={setSearch}
           placeholder="Find a community"
-          placeholderTextColor="#a1a1aa"
+          placeholderTextColor={MUTED_LIGHT}
           autoCapitalize="none"
           autoCorrect={false}
           className="rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 dark:border-zinc-700 dark:text-white"

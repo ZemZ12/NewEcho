@@ -9,9 +9,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel, MessageResponse } from 'stream-chat';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useRubberBandList } from '@/hooks/useRubberBandList';
 import { useStreamChat } from '@/hooks/useStreamChat';
 import { channelDisplayName } from '@/lib/channelDisplayName';
+import { ACCENT, MUTED_LIGHT } from '@/lib/colors';
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList) as typeof FlashList;
 
@@ -65,18 +67,27 @@ export default function ChatListScreen() {
     if (!client) return;
     loadChannels();
 
+    // The client already patches channel.state.members[id].user in place
+    // for every watched channel on this event (see stream-chat's
+    // _updateMemberWatcherReferences) — no need for a full queryChannels
+    // round trip just to reflect an online/offline flip. A cheap array-copy
+    // re-render is enough for isOtherOnline() to pick up the fresh data.
+    const rerenderFromLocalState = () => setChannels((prev) => [...prev]);
+
     const handlers = [
       client.on('message.new', loadChannels),
       client.on('notification.added_to_channel', loadChannels),
       client.on('channel.updated', loadChannels),
-      client.on('user.presence.changed', loadChannels),
+      client.on('user.presence.changed', rerenderFromLocalState),
     ];
     return () => handlers.forEach((handler) => handler.unsubscribe());
   }, [client, loadChannels]);
 
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
+
   useEffect(() => {
     if (!client || !searchVisible) return;
-    const query = searchQuery.trim();
+    const query = debouncedSearchQuery.trim();
     if (!query) {
       setSearchResults([]);
       return;
@@ -96,7 +107,7 @@ export default function ChatListScreen() {
     return () => {
       cancelled = true;
     };
-  }, [client, searchQuery, searchVisible]);
+  }, [client, debouncedSearchQuery, searchVisible]);
 
   function handleDelete(channel: Channel) {
     Alert.alert('Delete conversation?', 'It will disappear from your list until someone sends a new message.', [
@@ -130,10 +141,10 @@ export default function ChatListScreen() {
         <Text className="text-3xl font-semibold text-zinc-900 dark:text-white">Echo</Text>
         <View className="flex-row items-center gap-4">
           <Pressable onPress={() => setSearchVisible(true)} className="h-10 w-10 items-center justify-center">
-            <Ionicons name="search-outline" size={24} color="#6366f1" />
+            <Ionicons name="search-outline" size={24} color={ACCENT} />
           </Pressable>
           <Link href="/new-group" className="h-10 w-10 items-center justify-center">
-            <Ionicons name="add" size={28} color="#6366f1" />
+            <Ionicons name="add" size={28} color={ACCENT} />
           </Link>
         </View>
       </View>
@@ -186,7 +197,7 @@ export default function ChatListScreen() {
                         {lastMessagePreview(channel)}
                       </Text>
                     </View>
-                    {muted ? <Ionicons name="notifications-off-outline" size={16} color="#a1a1aa" /> : null}
+                    {muted ? <Ionicons name="notifications-off-outline" size={16} color={MUTED_LIGHT} /> : null}
                   </Pressable>
                 );
               }}
@@ -202,7 +213,7 @@ export default function ChatListScreen() {
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search messages"
-              placeholderTextColor="#a1a1aa"
+              placeholderTextColor={MUTED_LIGHT}
               autoFocus
               className="flex-1 rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 dark:border-zinc-700 dark:text-white"
             />

@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRubberBandList } from '@/hooks/useRubberBandList';
 import { useStreamChat } from '@/hooks/useStreamChat';
 import { joinCommunityDoc, leaveCommunityDoc, type Community } from '@/lib/communities';
+import { ACCENT, MUTED_DARK, MUTED_LIGHT } from '@/lib/colors';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList) as typeof FlatList;
 
@@ -145,10 +146,10 @@ export default function CommunityScreen() {
             ? () => (
                 <View className="flex-row items-center gap-4">
                   <Link href={{ pathname: '/new-channel', params: { communityId: community.id } }}>
-                    <Ionicons name="add" size={26} color="#6366f1" />
+                    <Ionicons name="add" size={26} color={ACCENT} />
                   </Link>
                   <Pressable onPress={() => setMenuVisible(true)} hitSlop={8}>
-                    <Ionicons name="ellipsis-horizontal" size={22} color="#71717a" />
+                    <Ionicons name="ellipsis-horizontal" size={22} color={MUTED_DARK} />
                   </Pressable>
                 </View>
               )
@@ -193,7 +194,7 @@ export default function CommunityScreen() {
                 <Pressable
                   onPress={() => router.push({ pathname: '/chat/[id]', params: { id: channel.id!, type: 'team' } })}
                   className="flex-row items-center gap-2 border-b border-zinc-100 py-3 dark:border-zinc-800">
-                  <Ionicons name="pricetag-outline" size={16} color="#a1a1aa" />
+                  <Ionicons name="pricetag-outline" size={16} color={MUTED_LIGHT} />
                   <Text className="text-base text-zinc-900 dark:text-white">{channel.data?.name ?? channel.id}</Text>
                 </Pressable>
               )}

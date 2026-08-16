@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/useAuth';
 import { createCommunity } from '@/lib/communities';
+import { MUTED_LIGHT } from '@/lib/colors';
 
 export default function NewCommunityScreen() {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ export default function NewCommunityScreen() {
           value={name}
           onChangeText={setName}
           placeholder="Community name"
-          placeholderTextColor="#a1a1aa"
+          placeholderTextColor={MUTED_LIGHT}
           maxLength={40}
           className="rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 dark:border-zinc-700 dark:text-white"
         />
@@ -45,7 +46,7 @@ export default function NewCommunityScreen() {
           value={description}
           onChangeText={setDescription}
           placeholder="What's this community about?"
-          placeholderTextColor="#a1a1aa"
+          placeholderTextColor={MUTED_LIGHT}
           multiline
           maxLength={200}
           className="min-h-[80px] rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 dark:border-zinc-700 dark:text-white"

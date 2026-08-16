@@ -1,11 +1,8 @@
 import { memo } from 'react';
 import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
-import { CHART_BG, RIGHT_PADDING_CANDLES } from '@/components/CandlestickChart';
+import { AXIS_TEXT_COLOR, CHART_BG, DOWN_COLOR, PRICE_AXIS_WIDTH, RIGHT_PADDING_CANDLES, UP_COLOR } from '@/components/CandlestickChart';
 import { buildLinePath } from '@/lib/chartPath';
-
-const AXIS_TEXT_COLOR = '#71717a';
-const PRICE_AXIS_WIDTH = 46;
 
 export const MacdChart = memo(function MacdChart({
   line,
@@ -53,7 +50,7 @@ export const MacdChart = memo(function MacdChart({
             y={top}
             width={barWidth}
             height={barHeight}
-            fill={value >= 0 ? '#22c55e' : '#ef4444'}
+            fill={value >= 0 ? UP_COLOR : DOWN_COLOR}
           />
         );
       })}

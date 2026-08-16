@@ -9,6 +9,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FloatingCircles } from '@/components/FloatingCircles';
+import { MUTED_LIGHT } from '@/lib/colors';
 
 const ICON_SIZE = 104;
 // Rotation normally pivots around a view's center (50%); shifting the pivot
@@ -133,12 +134,12 @@ export default function OnboardingScreen() {
                 transition={{ type: 'timing', duration: 220 }}
                 className="gap-3">
                 <View className="flex-row items-center rounded-2xl border border-zinc-200 px-4 dark:border-zinc-700">
-                  <Ionicons name="call-outline" size={18} color="#a1a1aa" />
+                  <Ionicons name="call-outline" size={18} color={MUTED_LIGHT} />
                   <TextInput
                     value={phone}
                     onChangeText={setPhone}
                     placeholder="+1 555 123 4567"
-                    placeholderTextColor="#a1a1aa"
+                    placeholderTextColor={MUTED_LIGHT}
                     keyboardType="phone-pad"
                     autoComplete="tel"
                     className="flex-1 py-3 pl-3 text-base text-zinc-900 dark:text-white"
@@ -154,12 +155,12 @@ export default function OnboardingScreen() {
                 transition={{ type: 'timing', duration: 220 }}
                 className="gap-3">
                 <View className="flex-row items-center rounded-2xl border border-zinc-200 px-4 dark:border-zinc-700">
-                  <Ionicons name="keypad-outline" size={18} color="#a1a1aa" />
+                  <Ionicons name="keypad-outline" size={18} color={MUTED_LIGHT} />
                   <TextInput
                     value={code}
                     onChangeText={setCode}
                     placeholder="123456"
-                    placeholderTextColor="#a1a1aa"
+                    placeholderTextColor={MUTED_LIGHT}
                     keyboardType="number-pad"
                     autoComplete="sms-otp"
                     className="flex-1 py-3 pl-3 text-base tracking-[4px] text-zinc-900 dark:text-white"

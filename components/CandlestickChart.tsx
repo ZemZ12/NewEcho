@@ -1,7 +1,7 @@
 import { Fragment, memo } from 'react';
 import Svg, { Line, Path, Rect, Text as SvgText } from 'react-native-svg';
 
-import { formatAxisDate } from '@/lib/chartAxis';
+import { computeEffectiveRange, formatAxisDate } from '@/lib/chartAxis';
 import { buildLinePath } from '@/lib/chartPath';
 import type { StockCandle } from '@/lib/marketData';
 
@@ -13,15 +13,15 @@ export type SmaLine = { color: string; values: (number | null)[] };
 // themes.
 export const CHART_BG = '#0a0a0a';
 const GRID_COLOR = '#27272a';
-const AXIS_TEXT_COLOR = '#71717a';
+export const AXIS_TEXT_COLOR = '#71717a';
 export const PRICE_AXIS_WIDTH = 46;
 export const DATE_AXIS_HEIGHT = 16;
 // Empty candle-widths reserved at the right edge of whatever's currently
 // visible, so the latest candle isn't flush against the axis.
 export const RIGHT_PADDING_CANDLES = 3;
 const PRICE_GRIDLINES = 4;
-const UP_COLOR = '#22c55e';
-const DOWN_COLOR = '#ef4444';
+export const UP_COLOR = '#22c55e';
+export const DOWN_COLOR = '#ef4444';
 
 // One <Path> per wick color and one per body color instead of a <Line> +
 // <Rect> per candle — with 100+ candles that's ~4 SVG elements instead of
@@ -84,10 +84,7 @@ export const CandlestickChart = memo(function CandlestickChart({
   const smaValues = (smaLines ?? []).flatMap((line) => line.values).filter((v): v is number => v !== null);
   const rawMin = priceRange ? priceRange.min : Math.min(...candles.map((candle) => candle.low), ...smaValues);
   const rawMax = priceRange ? priceRange.max : Math.max(...candles.map((candle) => candle.high), ...smaValues);
-  const mid = (rawMin + rawMax) / 2;
-  const halfRange = (rawMax - rawMin || 1) / 2 / yZoomFactor;
-  const min = mid - halfRange;
-  const max = mid + halfRange;
+  const { min, max } = computeEffectiveRange(rawMin, rawMax, yZoomFactor);
   const range = max - min || 1;
   const toY = (value: number) => plotHeight - ((value - min) / range) * plotHeight;
 

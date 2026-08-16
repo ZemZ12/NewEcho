@@ -12,6 +12,7 @@ import { RsiChart } from '@/components/RsiChart';
 import { VolumeChart } from '@/components/VolumeChart';
 import { useAuth } from '@/hooks/useAuth';
 import { deleteChartShape, subscribeToChartShapes, type ChartShape } from '@/lib/chartAnnotations';
+import { ACCENT, MUTED_DARK, MUTED_LIGHT } from '@/lib/colors';
 import { fetchStockChartData, fetchStockQuote, type StockChartData, type StockQuote, type StockRange } from '@/lib/marketData';
 
 const MODES: { value: DrawMode; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -186,7 +187,7 @@ export default function StockScreen() {
           headerTintColor: '#fff',
           headerRight: () => (
             <Pressable onPress={() => router.back()} hitSlop={8}>
-              <Ionicons name="close" size={24} color="#a1a1aa" />
+              <Ionicons name="close" size={24} color={MUTED_LIGHT} />
             </Pressable>
           ),
         }}
@@ -332,7 +333,7 @@ export default function StockScreen() {
               <Pressable onPress={() => setRangeSheetOpen(true)} className="flex-row items-center gap-1">
                 <Text className="text-sm font-semibold text-white">${symbol}</Text>
                 <Text className="text-sm text-zinc-400">{range}</Text>
-                <Ionicons name="chevron-down" size={12} color="#71717a" />
+                <Ionicons name="chevron-down" size={12} color={MUTED_DARK} />
               </Pressable>
               <Pressable onPress={() => setIndicatorsSheetOpen(true)} hitSlop={8}>
                 <Ionicons name="stats-chart-outline" size={20} color="#fff" />
@@ -358,7 +359,7 @@ export default function StockScreen() {
                   }}
                   className="flex-row items-center justify-between px-5 py-3">
                   <Text className="text-base text-white">{option}</Text>
-                  {range === option ? <Ionicons name="checkmark" size={18} color="#6366f1" /> : null}
+                  {range === option ? <Ionicons name="checkmark" size={18} color={ACCENT} /> : null}
                 </Pressable>
               ))}
             </SafeAreaView>
@@ -387,7 +388,7 @@ export default function StockScreen() {
                     <View className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: period.color }} />
                     <Text className="text-base text-white">SMA {period.label}</Text>
                   </View>
-                  {enabledSma.has(period.key) ? <Ionicons name="checkmark" size={18} color="#6366f1" /> : null}
+                  {enabledSma.has(period.key) ? <Ionicons name="checkmark" size={18} color={ACCENT} /> : null}
                 </Pressable>
               ))}
               <Text className="px-5 pb-1 pt-2 text-xs uppercase tracking-wide text-zinc-500">Volume</Text>
@@ -395,20 +396,20 @@ export default function StockScreen() {
                 onPress={() => setShowVolume((value) => !value)}
                 className="flex-row items-center justify-between px-5 py-3">
                 <Text className="text-base text-white">Volume</Text>
-                {showVolume ? <Ionicons name="checkmark" size={18} color="#6366f1" /> : null}
+                {showVolume ? <Ionicons name="checkmark" size={18} color={ACCENT} /> : null}
               </Pressable>
               <Text className="px-5 pb-1 pt-2 text-xs uppercase tracking-wide text-zinc-500">Oscillators</Text>
               <Pressable
                 onPress={() => setShowRsi((value) => !value)}
                 className="flex-row items-center justify-between px-5 py-3">
                 <Text className="text-base text-white">RSI (14)</Text>
-                {showRsi ? <Ionicons name="checkmark" size={18} color="#6366f1" /> : null}
+                {showRsi ? <Ionicons name="checkmark" size={18} color={ACCENT} /> : null}
               </Pressable>
               <Pressable
                 onPress={() => setShowMacd((value) => !value)}
                 className="flex-row items-center justify-between px-5 py-3">
                 <Text className="text-base text-white">MACD (12, 26, 9)</Text>
-                {showMacd ? <Ionicons name="checkmark" size={18} color="#6366f1" /> : null}
+                {showMacd ? <Ionicons name="checkmark" size={18} color={ACCENT} /> : null}
               </Pressable>
             </SafeAreaView>
           </Pressable>

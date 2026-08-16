@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useAppTheme } from '@/hooks/useTheme';
+import { ACCENT, MUTED_DARK, MUTED_LIGHT } from '@/lib/colors';
 
-const ACCENT = '#6366f1';
-const INACTIVE = { light: '#a1a1aa', dark: '#71717a' };
+const INACTIVE = { light: MUTED_LIGHT, dark: MUTED_DARK };
 
 export default function TabLayout() {
   const { colorScheme } = useAppTheme();

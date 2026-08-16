@@ -7,6 +7,9 @@ module.exports = {
     extend: {
       colors: {
         // Single accent color per Design Direction — everything else is neutral.
+        // Keep these values in sync with lib/colors.ts, which the same
+        // colors get re-exported from for places that can't use a
+        // Tailwind className (Ionicons' color prop, LinearGradient, etc).
         accent: {
           DEFAULT: '#6366f1', // indigo-500
           light: '#818cf8',

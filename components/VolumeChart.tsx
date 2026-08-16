@@ -1,13 +1,8 @@
 import { memo } from 'react';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 
-import { CHART_BG, RIGHT_PADDING_CANDLES } from '@/components/CandlestickChart';
+import { AXIS_TEXT_COLOR, CHART_BG, DOWN_COLOR, PRICE_AXIS_WIDTH, RIGHT_PADDING_CANDLES, UP_COLOR } from '@/components/CandlestickChart';
 import type { StockCandle } from '@/lib/marketData';
-
-const AXIS_TEXT_COLOR = '#71717a';
-const PRICE_AXIS_WIDTH = 46;
-const UP_COLOR = '#22c55e';
-const DOWN_COLOR = '#ef4444';
 
 export function formatVolume(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;

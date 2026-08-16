@@ -1,12 +1,13 @@
-import firestore from '@react-native-firebase/firestore';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useStreamChat } from '@/hooks/useStreamChat';
-import { PREFIX_RANGE_END } from '@/lib/firestoreSearch';
+import { MUTED_LIGHT } from '@/lib/colors';
+import { searchByPrefix } from '@/lib/firestoreSearch';
 
 const MAX_GROUP_SIZE = 15;
 
@@ -27,8 +28,10 @@ export default function NewGroupScreen() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const debouncedSearch = useDebouncedValue(search, 300);
+
   useEffect(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     if (!query) {
       setResults([]);
       return;
@@ -37,12 +40,7 @@ export default function NewGroupScreen() {
     let cancelled = false;
     setSearching(true);
     setError(null);
-    firestore()
-      .collection('users')
-      .where('usernameLower', '>=', query)
-      .where('usernameLower', '<=', query + PREFIX_RANGE_END)
-      .limit(10)
-      .get()
+    searchByPrefix('users', 'usernameLower', query, 10)
       .then((snapshot) => {
         if (cancelled) return;
         const selectedIds = new Set(selected.map((member) => member.uid));
@@ -63,7 +61,7 @@ export default function NewGroupScreen() {
     return () => {
       cancelled = true;
     };
-  }, [search, selected, user]);
+  }, [debouncedSearch, selected, user]);
 
   function addMember(member: UserResult) {
     if (selected.length >= MAX_GROUP_SIZE - 1) return;
@@ -115,7 +113,7 @@ export default function NewGroupScreen() {
           value={search}
           onChangeText={setSearch}
           placeholder="Search by username"
-          placeholderTextColor="#a1a1aa"
+          placeholderTextColor={MUTED_LIGHT}
           autoCapitalize="none"
           autoCorrect={false}
           className="rounded-xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 dark:border-zinc-700 dark:text-white"

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStreamChat } from '@/hooks/useStreamChat';
 import type { Community } from '@/lib/communities';
+import { MUTED_LIGHT } from '@/lib/colors';
 
 export default function NewChannelScreen() {
   const { communityId } = useLocalSearchParams<{ communityId: string }>();
@@ -48,7 +49,7 @@ export default function NewChannelScreen() {
           value={name}
           onChangeText={setName}
           placeholder="Channel name, e.g. options"
-          placeholderTextColor="#a1a1aa"
+          placeholderTextColor={MUTED_LIGHT}
           autoCapitalize="none"
           maxLength={40}
           className="rounded-2xl border border-zinc-200 px-4 py-3 text-base text-zinc-900 dark:border-zinc-700 dark:text-white"

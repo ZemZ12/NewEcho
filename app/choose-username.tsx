@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/useAuth';
 import { claimUsername } from '@/hooks/useProfile';
+import { MUTED_LIGHT } from '@/lib/colors';
 
 // Shown once, right after phone verification, before entering the app.
 // Claiming a username here is what makes someone discoverable/addable in
@@ -41,7 +42,7 @@ export default function ChooseUsernameScreen() {
           value={username}
           onChangeText={setUsername}
           placeholder="username"
-          placeholderTextColor="#a1a1aa"
+          placeholderTextColor={MUTED_LIGHT}
           autoCapitalize="none"
           autoCorrect={false}
           maxLength={20}

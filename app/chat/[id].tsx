@@ -26,6 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRubberBandList } from '@/hooks/useRubberBandList';
 import { useStreamChat } from '@/hooks/useStreamChat';
 import { channelDisplayName } from '@/lib/channelDisplayName';
+import { ACCENT, ACCENT_DARK, ACCENT_LIGHT, DANGER, MUTED_DARK, MUTED_LIGHT } from '@/lib/colors';
 import { fetchStockChartData, fetchStockQuote, type StockCandle, type StockQuote } from '@/lib/marketData';
 import { pickImageFromCamera, pickImageFromLibrary } from '@/lib/pickImage';
 import { extractTickers } from '@/lib/tickers';
@@ -95,14 +96,14 @@ function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
         transition={{ type: 'timing', duration: FILL_DURATION }}
         style={{ position: 'absolute', top: 0, bottom: 0, left: 0 }}>
         <LinearGradient
-          colors={['#818cf8', '#4f46e5']}
+          colors={[ACCENT_LIGHT, ACCENT_DARK]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={StyleSheet.absoluteFillObject}
         />
       </MotiView>
       <View className="px-4 py-2">
-        <Text style={{ color: seen ? '#ffffff' : '#6366f1' }}>{text}</Text>
+        <Text style={{ color: seen ? '#ffffff' : ACCENT }}>{text}</Text>
       </View>
     </View>
   );
@@ -152,7 +153,7 @@ function TickerChip({ symbol, channelId }: { symbol: string; channelId?: string 
           </Text>
         </>
       ) : failed ? (
-        <Ionicons name="alert-circle-outline" size={12} color="#a1a1aa" />
+        <Ionicons name="alert-circle-outline" size={12} color={MUTED_LIGHT} />
       ) : (
         <ActivityIndicator size="small" />
       )}
@@ -462,7 +463,7 @@ export default function ChatScreen() {
           ),
           headerRight: () => (
             <Pressable onPress={() => setInfoVisible(true)} hitSlop={8}>
-              <Ionicons name="information-circle-outline" size={26} color="#6366f1" />
+              <Ionicons name="information-circle-outline" size={26} color={ACCENT} />
             </Pressable>
           ),
         }}
@@ -576,7 +577,7 @@ export default function ChatScreen() {
                 ) : null}
               </View>
               <Pressable onPress={cancelComposerExtra} hitSlop={8}>
-                <Ionicons name="close" size={20} color="#71717a" />
+                <Ionicons name="close" size={20} color={MUTED_DARK} />
               </Pressable>
             </View>
           ) : null}
@@ -586,13 +587,13 @@ export default function ChatScreen() {
               onPress={handleAttach}
               disabled={sendingImage || !channel}
               className="items-center justify-center rounded-full bg-zinc-100 p-2 disabled:opacity-50 dark:bg-zinc-800">
-              {sendingImage ? <ActivityIndicator /> : <Ionicons name="image-outline" size={22} color="#6366f1" />}
+              {sendingImage ? <ActivityIndicator /> : <Ionicons name="image-outline" size={22} color={ACCENT} />}
             </Pressable>
             <TextInput
               value={text}
               onChangeText={handleTextChange}
               placeholder="Message"
-              placeholderTextColor="#a1a1aa"
+              placeholderTextColor={MUTED_LIGHT}
               className="flex-1 rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
               style={{ maxHeight: 120 }}
               textAlignVertical="top"
@@ -613,13 +614,13 @@ export default function ChatScreen() {
           <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
             <Text className="text-2xl font-semibold text-zinc-900 dark:text-white">Members</Text>
             <Pressable onPress={() => setInfoVisible(false)} hitSlop={8}>
-              <Ionicons name="close" size={26} color="#71717a" />
+              <Ionicons name="close" size={26} color={MUTED_DARK} />
             </Pressable>
           </View>
 
           <Pressable onPress={handleToggleMute} className="mx-5 mb-2 flex-row items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-900">
             <Text className="text-base text-zinc-900 dark:text-white">Mute notifications</Text>
-            <Ionicons name={muted ? 'notifications-off' : 'notifications-outline'} size={20} color={muted ? '#ef4444' : '#71717a'} />
+            <Ionicons name={muted ? 'notifications-off' : 'notifications-outline'} size={20} color={muted ? DANGER : MUTED_DARK} />
           </Pressable>
 
           <FlatList
@@ -675,17 +676,17 @@ export default function ChatScreen() {
               ))}
             </View>
             <Pressable onPress={handleReplyPress} className="flex-row items-center gap-3 rounded-xl px-3 py-3">
-              <Ionicons name="arrow-undo-outline" size={20} color="#71717a" />
+              <Ionicons name="arrow-undo-outline" size={20} color={MUTED_DARK} />
               <Text className="text-base text-zinc-900 dark:text-white">Reply</Text>
             </Pressable>
             {isActionTargetMine ? (
               <>
                 <Pressable onPress={handleEditPress} className="flex-row items-center gap-3 rounded-xl px-3 py-3">
-                  <Ionicons name="create-outline" size={20} color="#71717a" />
+                  <Ionicons name="create-outline" size={20} color={MUTED_DARK} />
                   <Text className="text-base text-zinc-900 dark:text-white">Edit</Text>
                 </Pressable>
                 <Pressable onPress={handleDeletePress} className="flex-row items-center gap-3 rounded-xl px-3 py-3">
-                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  <Ionicons name="trash-outline" size={20} color={DANGER} />
                   <Text className="text-base text-red-500">Delete</Text>
                 </Pressable>
               </>

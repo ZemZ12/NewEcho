@@ -8,6 +8,7 @@ import { CandlestickChart, DATE_AXIS_HEIGHT, PRICE_AXIS_WIDTH, RIGHT_PADDING_CAN
 import { LiveCandleLayer, type SmaKey } from '@/components/LiveCandleLayer';
 import { formatVolume } from '@/components/VolumeChart';
 import { addLineShape, addNoteShape, type ChartShape } from '@/lib/chartAnnotations';
+import { computeEffectiveRange } from '@/lib/chartAxis';
 import type { StockCandle, StockRange } from '@/lib/marketData';
 
 export type DrawMode = 'view' | 'line' | 'note';
@@ -247,10 +248,8 @@ export function AnnotatedChart({
     // Must match the same effective (vertical-zoom-adjusted) range the
     // chart is actually rendered with, or the readout drifts from what's
     // on screen the moment yZoomFactor isn't 1.
-    const mid = (min + max) / 2;
-    const halfRange = (max - min || 1) / 2 / yZoomFactor;
-    const effectiveMax = mid + halfRange;
-    const effectiveRange = halfRange * 2;
+    const { min: effectiveMin, max: effectiveMax } = computeEffectiveRange(min, max, yZoomFactor);
+    const effectiveRange = effectiveMax - effectiveMin || 1;
     const price = effectiveMax - (clampedY / plotHeight) * effectiveRange;
     setCrosshair({ candle: slicedCandles[index], x: index * stepX + stepX / 2, y: clampedY, price });
   }
