@@ -3,6 +3,8 @@ import { defineSecret } from 'firebase-functions/params';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { StreamChat } from 'stream-chat';
 
+export { getStockCandles, getStockQuote } from './marketData';
+
 initializeApp();
 
 const streamApiKey = defineSecret('STREAM_API_KEY');

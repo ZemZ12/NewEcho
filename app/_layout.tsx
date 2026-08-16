@@ -36,6 +36,7 @@ function RootNavigator() {
         <Stack.Screen name="communities/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="communities/[id]" options={{ headerShown: true }} />
         <Stack.Screen name="new-channel" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="stock/[symbol]" options={{ presentation: 'modal' }} />
       </Stack.Protected>
       <Stack.Protected guard={!user}>
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />

@@ -61,5 +61,32 @@ service cloud.firestore {
       );
       allow delete: if false;
     }
+
+    // Trend lines and notes drawn on a stock chart, shared across everyone
+    // viewing that symbol from the same chat channel. Channel membership
+    // itself lives in Stream, not Firestore, so these rules can only check
+    // that the writer is signed in — same trust boundary as `communities`,
+    // which is open/discoverable by design. Shapes are immutable once
+    // created (no update); only their own creator can remove one.
+    match /chartShapes/{shapeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.channelId is string
+        && request.resource.data.symbol is string
+        && request.resource.data.range is string
+        && request.resource.data.color is string
+        && (
+          (request.resource.data.type == 'line'
+            && request.resource.data.x1 is number && request.resource.data.y1 is number
+            && request.resource.data.x2 is number && request.resource.data.y2 is number)
+          ||
+          (request.resource.data.type == 'note'
+            && request.resource.data.x is number && request.resource.data.y is number
+            && request.resource.data.text is string && request.resource.data.text.size() <= 200)
+        );
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+    }
   }
 }

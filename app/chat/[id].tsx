@@ -21,11 +21,14 @@ import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Channel, LocalMessage } from 'stream-chat';
 
+import { PriceChart } from '@/components/PriceChart';
 import { useAuth } from '@/hooks/useAuth';
 import { useRubberBandList } from '@/hooks/useRubberBandList';
 import { useStreamChat } from '@/hooks/useStreamChat';
 import { channelDisplayName } from '@/lib/channelDisplayName';
+import { fetchStockChartData, fetchStockQuote, type StockCandle, type StockQuote } from '@/lib/marketData';
 import { pickImageFromCamera, pickImageFromLibrary } from '@/lib/pickImage';
+import { extractTickers } from '@/lib/tickers';
 
 // Stream's reaction `type` field only allows alphanumeric/underscore/dash/dot
 // characters — raw emoji aren't valid, so each reaction needs a plain-string
@@ -102,6 +105,58 @@ function SentTextBubble({ text, seen }: { text: string; seen: boolean }) {
         <Text style={{ color: seen ? '#ffffff' : '#6366f1' }}>{text}</Text>
       </View>
     </View>
+  );
+}
+
+function TickerChip({ symbol, channelId }: { symbol: string; channelId?: string }) {
+  const router = useRouter();
+  const [quote, setQuote] = useState<StockQuote | null>(null);
+  const [candles, setCandles] = useState<StockCandle[]>([]);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchStockQuote(symbol)
+      .then((result) => {
+        if (!cancelled) setQuote(result);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    fetchStockChartData(symbol)
+      .then((result) => {
+        if (!cancelled) setCandles(result.candles);
+      })
+      .catch(() => {
+        // A missing sparkline isn't worth surfacing as an error on its own.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol]);
+
+  const up = (quote?.change ?? 0) >= 0;
+
+  return (
+    <Pressable
+      onPress={() => router.push({ pathname: '/stock/[symbol]', params: { symbol, channelId } })}
+      className="flex-row items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 dark:bg-zinc-800">
+      <Text className="text-xs font-semibold text-zinc-900 dark:text-white">${symbol}</Text>
+      {quote ? (
+        <>
+          <Text className="text-xs text-zinc-500 dark:text-zinc-400">{quote.price.toFixed(2)}</Text>
+          {candles.length >= 2 ? <PriceChart candles={candles} width={40} height={18} /> : null}
+          <Text className={`text-xs font-medium ${up ? 'text-green-500' : 'text-red-500'}`}>
+            {up ? '+' : ''}
+            {quote.percentChange.toFixed(2)}%
+          </Text>
+        </>
+      ) : failed ? (
+        <Ionicons name="alert-circle-outline" size={12} color="#a1a1aa" />
+      ) : (
+        <ActivityIndicator size="small" />
+      )}
+    </Pressable>
   );
 }
 
@@ -440,6 +495,7 @@ export default function ChatScreen() {
               const images = (message.attachments ?? []).filter((attachment) => attachment.type === 'image');
               const reactionEntries = Object.entries(message.reaction_counts ?? {}).filter(([, count]) => count > 0);
               const seen = isMine && !!channel && isSeenByOthers(channel, message, user?.uid ?? '');
+              const tickers = message.text ? extractTickers(message.text) : [];
               return (
                 <Pressable onLongPress={() => setActionTarget(message)} className={isMine ? 'items-end' : 'items-start'}>
                   {message.quoted_message ? (
@@ -468,6 +524,13 @@ export default function ChatScreen() {
                   ) : null}
                   {message.message_text_updated_at ? (
                     <Text className="mt-0.5 text-[10px] text-zinc-400 dark:text-zinc-500">edited</Text>
+                  ) : null}
+                  {tickers.length > 0 ? (
+                    <View className="mt-1 flex-row flex-wrap gap-1">
+                      {tickers.map((symbol) => (
+                        <TickerChip key={`${message.id}-ticker-${symbol}`} symbol={symbol} channelId={channel?.id} />
+                      ))}
+                    </View>
                   ) : null}
                   {reactionEntries.length > 0 ? (
                     <View className="mt-1 flex-row gap-1">
